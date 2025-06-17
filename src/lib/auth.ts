@@ -1,6 +1,6 @@
-import type { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "./db"
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "./db";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,26 +12,31 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: { surveyor: true },
-        })
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            include: { surveyor: true },
+          });
 
-        if (!user) {
-          return null
-        }
+          if (!user) {
+            return null;
+          }
 
-        // In a real app, you'd hash passwords
-        // const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          // In a real app, you'd hash passwords
+          // const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error("Database error during authentication:", error);
+          return null;
         }
       },
     }),
@@ -42,20 +47,21 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
       }
-      return session
+      return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.role = user.role
+        token.id = user.id;
+        token.role = user.role;
       }
-      return token
+      return token;
     },
   },
   session: {
     strategy: "jwt",
   },
-}
+  secret: process.env.NEXTAUTH_SECRET,
+};
