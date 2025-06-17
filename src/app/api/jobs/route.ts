@@ -1,15 +1,16 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
-import { surveyJobSchema } from "@/lib/validations"
+import { type NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { surveyJobSchema } from "@/lib/validations";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const jobs = await prisma.surveyJob.findMany({
@@ -27,46 +28,55 @@ export async function GET(request: NextRequest) {
       orderBy: {
         submittedAt: "desc",
       },
-    })
+    });
 
-    return NextResponse.json(jobs)
+    return NextResponse.json(jobs);
   } catch (error) {
-    console.error("Jobs fetch error:", error)
-    return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 })
+    console.error("Jobs fetch error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch jobs" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { documents, ...jobData } = body
+    const body = await request.json();
+    const { documents, ...jobData } = body;
 
     // Validate job data
-    const validatedData = surveyJobSchema.parse(jobData)
+    const validatedData = surveyJobSchema.parse(jobData);
 
     // Get surveyor info
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { surveyor: true },
-    })
+    });
 
     if (!user?.surveyor) {
-      return NextResponse.json({ error: "Surveyor profile not found" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Surveyor profile not found" },
+        { status: 400 }
+      );
     }
 
     if (user.surveyor.status !== "VERIFIED") {
-      return NextResponse.json({ error: "Surveyor not verified" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Surveyor not verified" },
+        { status: 400 }
+      );
     }
 
     // Generate job number
-    const jobCount = await prisma.surveyJob.count()
-    const jobNumber = `JOB-${new Date().getFullYear()}-${String(jobCount + 1).padStart(3, "0")}`
+    const jobCount = await prisma.surveyJob.count();
+    const jobNumber = `JOB-${new Date().getFullYear()}-${String(jobCount + 1).padStart(3, "0")}`;
 
     // Create survey job with documents
     const surveyJob = await prisma.surveyJob.create({
@@ -77,7 +87,9 @@ export async function POST(request: NextRequest) {
         clientPhone: validatedData.clientPhone,
         location: validatedData.location,
         description: validatedData.description || null,
-        coordinates: validatedData.coordinates || null,
+        coordinates: validatedData.coordinates
+          ? (validatedData.coordinates as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         userId: session.user.id,
         surveyorId: user.surveyor.id,
         documents: {
@@ -116,15 +128,18 @@ export async function POST(request: NextRequest) {
         documents: true,
         workflowSteps: true,
       },
-    })
+    });
 
     return NextResponse.json({
       message: "Job submitted successfully",
       jobNumber: surveyJob.jobNumber,
       jobId: surveyJob.id,
-    })
+    });
   } catch (error) {
-    console.error("Job submission error:", error)
-    return NextResponse.json({ error: "Failed to submit job" }, { status: 500 })
+    console.error("Job submission error:", error);
+    return NextResponse.json(
+      { error: "Failed to submit job" },
+      { status: 500 }
+    );
   }
 }
