@@ -1,7 +1,13 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, FileText, Users, Shield } from "lucide-react"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { MapPin, FileText, Users, Shield } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -11,7 +17,9 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <MapPin className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Rivers State Cadastral Survey</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Rivers State Cadastral Survey
+            </h1>
           </div>
           <div className="space-x-4">
             <Link href="/login">
@@ -27,10 +35,13 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="py-20">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">Digitizing Cadastral Survey Documentation</h2>
+          <h2 className="text-5xl font-bold text-gray-900 mb-6">
+            Digitizing Cadastral Survey Documentation
+          </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            A comprehensive platform for surveyors, NIS officers, and the Surveyor General's office to streamline
-            cadastral survey processes in Rivers State, Nigeria.
+            A comprehensive platform for surveyors, NIS officers, and the
+            Surveyor General&apos;s office to streamline cadastral survey
+            processes in Rivers State, Nigeria.
           </p>
           <div className="space-x-4">
             <Link href="/search">
@@ -50,7 +61,9 @@ export default function HomePage() {
       {/* Features */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center mb-12">Platform Features</h3>
+          <h3 className="text-3xl font-bold text-center mb-12">
+            Platform Features
+          </h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card>
               <CardHeader>
@@ -59,7 +72,8 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Submit, track, and manage cadastral survey jobs with digital documentation.
+                  Submit, track, and manage cadastral survey jobs with digital
+                  documentation.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -71,7 +85,8 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Separate portals for surveyors, NIS officers, and administrative staff.
+                  Separate portals for surveyors, NIS officers, and
+                  administrative staff.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -82,7 +97,9 @@ export default function HomePage() {
                 <CardTitle>Pillar Tracking</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>Search and verify pillar numbers with coordinate information.</CardDescription>
+                <CardDescription>
+                  Search and verify pillar numbers with coordinate information.
+                </CardDescription>
               </CardContent>
             </Card>
 
@@ -92,7 +109,9 @@ export default function HomePage() {
                 <CardTitle>Secure Workflow</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>Multi-step approval process ensuring quality and compliance.</CardDescription>
+                <CardDescription>
+                  Multi-step approval process ensuring quality and compliance.
+                </CardDescription>
               </CardContent>
             </Card>
           </div>
@@ -106,9 +125,14 @@ export default function HomePage() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <MapPin className="h-6 w-6" />
-                <span className="text-lg font-semibold">Rivers State Cadastral Survey</span>
+                <span className="text-lg font-semibold">
+                  Rivers State Cadastral Survey
+                </span>
               </div>
-              <p className="text-gray-400">Modernizing cadastral survey processes for Rivers State, Nigeria.</p>
+              <p className="text-gray-400">
+                Modernizing cadastral survey processes for Rivers State,
+                Nigeria.
+              </p>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
@@ -133,7 +157,7 @@ export default function HomePage() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Contact</h4>
               <p className="text-gray-400">
-                Surveyor General's Office
+                Surveyor General&apos;s Office
                 <br />
                 Rivers State, Nigeria
               </p>
@@ -145,5 +169,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
