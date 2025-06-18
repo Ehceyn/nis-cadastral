@@ -131,7 +131,7 @@ export default async function JobsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="font-medium">Location:</span>
                         <p className="text-gray-600">{job.location}</p>

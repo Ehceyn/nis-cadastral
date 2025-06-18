@@ -387,7 +387,7 @@ export function JobSubmissionForm() {
                   <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-gray-400 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{fileUpload.file.name}</p>
                           <p className="text-sm text-gray-500">{(fileUpload.file.size / 1024 / 1024).toFixed(2)} MB</p>
