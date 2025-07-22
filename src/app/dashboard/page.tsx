@@ -38,7 +38,15 @@ export default async function DashboardPage() {
   });
 
   // Fetch user's jobs if they are a surveyor
-  let jobs = [];
+  type SurveyJob = {
+    id: string;
+    jobNumber: string;
+    status: string;
+    clientName: string;
+    location: string;
+    submittedAt: Date;
+  };
+  let jobs: SurveyJob[] = [];
   let stats = {
     totalJobs: 0,
     pendingJobs: 0,
