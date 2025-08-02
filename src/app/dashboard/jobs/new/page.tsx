@@ -87,8 +87,10 @@ export default async function NewJobPage() {
                   <p className="text-gray-600">{user.email}</p>
                 </div>
                 <div>
-                  <span className="font-medium">License Number:</span>
-                  <p className="text-gray-600">{user.surveyor.licenseNumber}</p>
+                  <span className="font-medium">SURCON Registration:</span>
+                  <p className="text-gray-600">
+                    {user.surveyor.surconRegistrationNumber}
+                  </p>
                 </div>
                 <div>
                   <span className="font-medium">Firm Name:</span>

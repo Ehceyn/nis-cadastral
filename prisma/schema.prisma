@@ -25,16 +25,17 @@ model User {
 }
 
 model Surveyor {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  licenseNumber String   @unique
-  firmName      String
-  phoneNumber   String
-  address       String
-  status        SurveyorStatus @default(PENDING)
-  verifiedAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  nisMembershipNumber     String   @unique
+  surconRegistrationNumber String   @unique
+  firmName                String?
+  phoneNumber             String
+  address                 String
+  status                  SurveyorStatus @default(PENDING)
+  verifiedAt              DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
   
   user          User     @relation(fields: [userId], references: [id])
   surveyJobs    SurveyJob[]
@@ -44,17 +45,34 @@ model Surveyor {
 }
 
 model SurveyJob {
-  id           String    @id @default(cuid())
-  jobNumber    String    @unique
-  clientName   String
-  clientEmail  String?
-  clientPhone  String?
-  location     String
-  coordinates  Json?
-  description  String?
-  status       JobStatus @default(SUBMITTED)
-  submittedAt  DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                        String    @id @default(cuid())
+  jobNumber                 String    @unique
+  clientName                String
+  clientEmail               String?
+  clientPhone               String?
+  location                  String
+  coordinates               Json?
+  description               String?
+  status                    JobStatus @default(SUBMITTED)
+  submittedAt               DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  
+  // Enhanced Survey Details Fields
+  stampReference            String?
+  totalAmount               String?
+  planNumber                String?
+  depositTellerNumber       String?
+  depositAmount             String?
+  beaconTellerNumber        String?
+  beaconAmount              String?
+  titleHolderName           String?
+  pillarNumbersRequired     Int?
+  cumulativePillarsQuarter  Int?
+  cumulativePillarsYear     Int?
+  eastingCoordinates        String?
+  northingCoordinates       String?
+  areaSqm                   String?
+  dateApproved              DateTime?
   
   surveyorId   String
   surveyor     Surveyor  @relation(fields: [surveyorId], references: [id])
@@ -140,6 +158,9 @@ enum DocumentType {
   SURVEY_REPORT
   COORDINATES
   LEGAL_DOCS
+  KML_FILE
+  DXF_FILE
+  DWG_FILE
   OTHER
 }
 

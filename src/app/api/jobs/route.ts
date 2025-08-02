@@ -13,8 +13,61 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Extract query parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "";
+    const dateFrom = searchParams.get("dateFrom") || "";
+    const dateTo = searchParams.get("dateTo") || "";
+    const sortBy = searchParams.get("sortBy") || "submittedAt";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
+
+    // Build where clause
+    const where: Prisma.SurveyJobWhereInput = {
+      userId: session.user.id,
+    };
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { jobNumber: { contains: search, mode: "insensitive" } },
+        { clientName: { contains: search, mode: "insensitive" } },
+        { location: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+        { planNumber: { contains: search, mode: "insensitive" } },
+        { titleHolderName: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    // Add status filter
+    if (status) {
+      where.status = status as any;
+    }
+
+    // Add date range filter
+    if (dateFrom || dateTo) {
+      where.submittedAt = {};
+      if (dateFrom) {
+        where.submittedAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        where.submittedAt.lte = endDate;
+      }
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await prisma.surveyJob.count({ where });
+
+    // Get jobs with filters and pagination
     const jobs = await prisma.surveyJob.findMany({
-      where: { userId: session.user.id },
+      where,
       include: {
         surveyor: {
           include: {
@@ -26,11 +79,36 @@ export async function GET(request: NextRequest) {
         pillarNumbers: true,
       },
       orderBy: {
-        submittedAt: "desc",
+        [sortBy]: sortOrder as any,
       },
+      skip,
+      take: limit,
     });
 
-    return NextResponse.json(jobs);
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json({
+      jobs,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasNextPage,
+        hasPrevPage,
+        limit,
+      },
+      filters: {
+        search,
+        status,
+        dateFrom,
+        dateTo,
+        sortBy,
+        sortOrder,
+      },
+    });
   } catch (error) {
     console.error("Jobs fetch error:", error);
     return NextResponse.json(
@@ -90,6 +168,22 @@ export async function POST(request: NextRequest) {
         coordinates: validatedData.coordinates
           ? (validatedData.coordinates as Prisma.InputJsonValue)
           : Prisma.JsonNull,
+        // Enhanced Survey Details Fields
+        stampReference: validatedData.stampReference || null,
+        totalAmount: validatedData.totalAmount || null,
+        planNumber: validatedData.planNumber || null,
+        depositTellerNumber: validatedData.depositTellerNumber || null,
+        depositAmount: validatedData.depositAmount || null,
+        beaconTellerNumber: validatedData.beaconTellerNumber || null,
+        beaconAmount: validatedData.beaconAmount || null,
+        titleHolderName: validatedData.titleHolderName || null,
+        pillarNumbersRequired: validatedData.pillarNumbersRequired || null,
+        cumulativePillarsQuarter:
+          validatedData.cumulativePillarsQuarter || null,
+        cumulativePillarsYear: validatedData.cumulativePillarsYear || null,
+        eastingCoordinates: validatedData.eastingCoordinates || null,
+        northingCoordinates: validatedData.northingCoordinates || null,
+        areaSqm: validatedData.areaSqm || null,
         userId: session.user.id,
         surveyorId: user.surveyor.id,
         documents: {

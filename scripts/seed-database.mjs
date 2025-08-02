@@ -1,22 +1,22 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client"
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🌱 Starting database seeding...");
+  console.log("🌱 Starting database seeding...")
 
   try {
     // Clear existing data (in reverse order of dependencies)
-    console.log("🧹 Cleaning existing data...");
-    await prisma.workflowStep.deleteMany();
-    await prisma.document.deleteMany();
-    await prisma.pillarNumber.deleteMany();
-    await prisma.surveyJob.deleteMany();
-    await prisma.surveyor.deleteMany();
-    await prisma.user.deleteMany();
+    console.log("🧹 Cleaning existing data...")
+    await prisma.workflowStep.deleteMany()
+    await prisma.document.deleteMany()
+    await prisma.pillarNumber.deleteMany()
+    await prisma.surveyJob.deleteMany()
+    await prisma.surveyor.deleteMany()
+    await prisma.user.deleteMany()
 
     // Create Users and Surveyors
-    console.log("👥 Creating users and surveyors...");
+    console.log("👥 Creating users and surveyors...")
 
     const users = await Promise.all([
       // Verified Surveyors
@@ -117,19 +117,17 @@ async function main() {
           role: "ADMIN",
         },
       }),
-    ]);
+    ])
 
-    console.log(`✅ Created ${users.length} users`);
+    console.log(`✅ Created ${users.length} users`)
 
     // Get verified surveyors for creating jobs
-    const verifiedSurveyors = users.filter(
-      (user) => user.surveyor && user.surveyor.status === "VERIFIED"
-    );
+    const verifiedSurveyors = users.filter((user) => user.surveyor && user.surveyor.status === "VERIFIED")
 
     // Create Survey Jobs with realistic data
-    console.log("📋 Creating survey jobs...");
+    console.log("📋 Creating survey jobs...")
 
-    const surveyJobs = [];
+    const surveyJobs = []
 
     // Job 1 - Completed
     const job1 = await prisma.surveyJob.create({
@@ -138,8 +136,7 @@ async function main() {
         clientName: "Mr. Emeka Okonkwo",
         clientEmail: "emeka.okonkwo@gmail.com",
         clientPhone: "+234 803 567 8901",
-        location:
-          "Plot 15, Block C, New GRA Phase 2, Port Harcourt, Rivers State",
+        location: "Plot 15, Block C, New GRA Phase 2, Port Harcourt, Rivers State",
         description: "Cadastral survey for residential property development",
         coordinates: {
           latitude: 4.8156,
@@ -151,8 +148,8 @@ async function main() {
         userId: verifiedSurveyors[0].id,
         surveyorId: verifiedSurveyors[0].surveyor.id,
       },
-    });
-    surveyJobs.push(job1);
+    })
+    surveyJobs.push(job1)
 
     // Job 2 - NIS Review
     const job2 = await prisma.surveyJob.create({
@@ -173,8 +170,8 @@ async function main() {
         userId: verifiedSurveyors[1].id,
         surveyorId: verifiedSurveyors[1].surveyor.id,
       },
-    });
-    surveyJobs.push(job2);
+    })
+    surveyJobs.push(job2)
 
     // Job 3 - Admin Review
     const job3 = await prisma.surveyJob.create({
@@ -195,8 +192,8 @@ async function main() {
         userId: verifiedSurveyors[2].id,
         surveyorId: verifiedSurveyors[2].surveyor.id,
       },
-    });
-    surveyJobs.push(job3);
+    })
+    surveyJobs.push(job3)
 
     // Job 4 - Recently Submitted
     const job4 = await prisma.surveyJob.create({
@@ -215,8 +212,8 @@ async function main() {
         userId: verifiedSurveyors[0].id,
         surveyorId: verifiedSurveyors[0].surveyor.id,
       },
-    });
-    surveyJobs.push(job4);
+    })
+    surveyJobs.push(job4)
 
     // Job 5 - Rejected
     const job5 = await prisma.surveyJob.create({
@@ -233,15 +230,15 @@ async function main() {
         userId: verifiedSurveyors[1].id,
         surveyorId: verifiedSurveyors[1].surveyor.id,
       },
-    });
-    surveyJobs.push(job5);
+    })
+    surveyJobs.push(job5)
 
-    console.log(`✅ Created ${surveyJobs.length} survey jobs`);
+    console.log(`✅ Created ${surveyJobs.length} survey jobs`)
 
     // Create Documents for each job
-    console.log("📄 Creating documents...");
+    console.log("📄 Creating documents...")
 
-    const documents = [];
+    const documents = []
 
     // Documents for Job 1 (Completed)
     const job1Docs = await Promise.all([
@@ -275,8 +272,8 @@ async function main() {
           surveyJobId: job1.id,
         },
       }),
-    ]);
-    documents.push(...job1Docs);
+    ])
+    documents.push(...job1Docs)
 
     // Documents for Job 2 (NIS Review)
     const job2Docs = await Promise.all([
@@ -300,8 +297,8 @@ async function main() {
           surveyJobId: job2.id,
         },
       }),
-    ]);
-    documents.push(...job2Docs);
+    ])
+    documents.push(...job2Docs)
 
     // Documents for Job 3 (Admin Review)
     const job3Docs = await Promise.all([
@@ -325,8 +322,8 @@ async function main() {
           surveyJobId: job3.id,
         },
       }),
-    ]);
-    documents.push(...job3Docs);
+    ])
+    documents.push(...job3Docs)
 
     // Documents for Job 4 (Recently Submitted)
     const job4Docs = await Promise.all([
@@ -340,15 +337,15 @@ async function main() {
           surveyJobId: job4.id,
         },
       }),
-    ]);
-    documents.push(...job4Docs);
+    ])
+    documents.push(...job4Docs)
 
-    console.log(`✅ Created ${documents.length} documents`);
+    console.log(`✅ Created ${documents.length} documents`)
 
     // Create Workflow Steps
-    console.log("🔄 Creating workflow steps...");
+    console.log("🔄 Creating workflow steps...")
 
-    const workflowSteps = [];
+    const workflowSteps = []
 
     // Workflow for Job 1 (Completed)
     const job1Workflow = await Promise.all([
@@ -388,8 +385,8 @@ async function main() {
           surveyJobId: job1.id,
         },
       }),
-    ]);
-    workflowSteps.push(...job1Workflow);
+    ])
+    workflowSteps.push(...job1Workflow)
 
     // Workflow for Job 2 (NIS Review)
     const job2Workflow = await Promise.all([
@@ -424,8 +421,8 @@ async function main() {
           surveyJobId: job2.id,
         },
       }),
-    ]);
-    workflowSteps.push(...job2Workflow);
+    ])
+    workflowSteps.push(...job2Workflow)
 
     // Workflow for Job 3 (Admin Review)
     const job3Workflow = await Promise.all([
@@ -462,8 +459,8 @@ async function main() {
           surveyJobId: job3.id,
         },
       }),
-    ]);
-    workflowSteps.push(...job3Workflow);
+    ])
+    workflowSteps.push(...job3Workflow)
 
     // Workflow for Job 4 (Recently Submitted)
     const job4Workflow = await Promise.all([
@@ -497,8 +494,8 @@ async function main() {
           surveyJobId: job4.id,
         },
       }),
-    ]);
-    workflowSteps.push(...job4Workflow);
+    ])
+    workflowSteps.push(...job4Workflow)
 
     // Workflow for Job 5 (Rejected)
     const job5Workflow = await Promise.all([
@@ -516,8 +513,7 @@ async function main() {
           stepName: "NIS Review",
           status: "REJECTED",
           completedAt: new Date("2024-01-12T11:20:00Z"),
-          notes:
-            "Rejected due to incomplete documentation. Missing boundary coordinates.",
+          notes: "Rejected due to incomplete documentation. Missing boundary coordinates.",
           surveyJobId: job5.id,
         },
       }),
@@ -535,13 +531,13 @@ async function main() {
           surveyJobId: job5.id,
         },
       }),
-    ]);
-    workflowSteps.push(...job5Workflow);
+    ])
+    workflowSteps.push(...job5Workflow)
 
-    console.log(`✅ Created ${workflowSteps.length} workflow steps`);
+    console.log(`✅ Created ${workflowSteps.length} workflow steps`)
 
     // Create Pillar Numbers for completed jobs
-    console.log("📍 Creating pillar numbers...");
+    console.log("📍 Creating pillar numbers...")
 
     const pillarNumbers = await Promise.all([
       prisma.pillarNumber.create({
@@ -556,39 +552,39 @@ async function main() {
           surveyorId: verifiedSurveyors[0].surveyor.id,
         },
       }),
-    ]);
+    ])
 
-    console.log(`✅ Created ${pillarNumbers.length} pillar numbers`);
+    console.log(`✅ Created ${pillarNumbers.length} pillar numbers`)
 
     // Summary
-    console.log("\n🎉 Database seeding completed successfully!");
-    console.log("📊 Summary:");
-    console.log(`   👥 Users: ${users.length}`);
-    console.log(`   🏢 Surveyors: ${users.filter((u) => u.surveyor).length}`);
-    console.log(`   📋 Survey Jobs: ${surveyJobs.length}`);
-    console.log(`   📄 Documents: ${documents.length}`);
-    console.log(`   🔄 Workflow Steps: ${workflowSteps.length}`);
-    console.log(`   📍 Pillar Numbers: ${pillarNumbers.length}`);
+    console.log("\n🎉 Database seeding completed successfully!")
+    console.log("📊 Summary:")
+    console.log(`   👥 Users: ${users.length}`)
+    console.log(`   🏢 Surveyors: ${users.filter((u) => u.surveyor).length}`)
+    console.log(`   📋 Survey Jobs: ${surveyJobs.length}`)
+    console.log(`   📄 Documents: ${documents.length}`)
+    console.log(`   🔄 Workflow Steps: ${workflowSteps.length}`)
+    console.log(`   📍 Pillar Numbers: ${pillarNumbers.length}`)
 
-    console.log("\n🔐 Test Accounts:");
-    console.log("   Surveyors:");
-    console.log("   - adebayo.johnson@email.com (Verified)");
-    console.log("   - chioma.okafor@email.com (Verified)");
-    console.log("   - ibrahim.musa@email.com (Verified)");
-    console.log("   - grace.emenike@email.com (Pending)");
-    console.log("   NIS Officer:");
-    console.log("   - samuel.okoro@nis.gov.ng");
-    console.log("   Admin:");
-    console.log("   - patricia.wike@surveyorgeneral.rs.gov.ng");
+    console.log("\n🔐 Test Accounts:")
+    console.log("   Surveyors:")
+    console.log("   - adebayo.johnson@email.com (Verified)")
+    console.log("   - chioma.okafor@email.com (Verified)")
+    console.log("   - ibrahim.musa@email.com (Verified)")
+    console.log("   - grace.emenike@email.com (Pending)")
+    console.log("   NIS Officer:")
+    console.log("   - samuel.okoro@nis.gov.ng")
+    console.log("   Admin:")
+    console.log("   - patricia.wike@surveyorgeneral.rs.gov.ng")
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
-    throw error;
+    console.error("❌ Error seeding database:", error)
+    throw error
   } finally {
-    await prisma.$disconnect();
+    await prisma.$disconnect()
   }
 }
 
 main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+  console.error(e)
+  process.exit(1)
+})

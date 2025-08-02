@@ -1,234 +1,252 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Upload, X, FileText, MapPin, User, Phone, Mail } from "lucide-react";
+import { toast } from "sonner";
+import { surveyJobSchema } from "@/lib/validations";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Upload, X, FileText, MapPin, User, Phone, Mail } from "lucide-react"
-import { toast } from "sonner"
-
-const jobSubmissionSchema = z.object({
-  clientName: z.string().min(2, "Client name is required"),
-  clientEmail: z.string().email("Valid email is required").optional().or(z.literal("")),
-  clientPhone: z.string().min(10, "Valid phone number is required"),
-  location: z.string().min(5, "Location is required"),
-  description: z.string().optional(),
-  coordinates: z
-    .object({
-      latitude: z.number().min(-90).max(90),
-      longitude: z.number().min(-180).max(180),
-    })
-    .optional(),
-})
-
-type JobSubmissionData = z.infer<typeof jobSubmissionSchema>
+type JobSubmissionData = z.infer<typeof surveyJobSchema>;
 
 interface FileUpload {
-  file: File
-  type: string
-  progress: number
-  uploaded: boolean
-  url?: string
+  file: File;
+  type: string;
+  progress: number;
+  uploaded: boolean;
+  url?: string;
 }
 
 export function JobSubmissionForm() {
-  const [files, setFiles] = useState<FileUpload[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const router = useRouter()
+  const [files, setFiles] = useState<FileUpload[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const router = useRouter();
 
   const form = useForm<JobSubmissionData>({
-    resolver: zodResolver(jobSubmissionSchema),
+    resolver: zodResolver(surveyJobSchema),
     defaultValues: {
       clientName: "",
       clientEmail: "",
       clientPhone: "",
       location: "",
       description: "",
+      stampReference: "",
+      totalAmount: "",
+      planNumber: "",
+      depositTellerNumber: "",
+      depositAmount: "",
+      beaconTellerNumber: "",
+      beaconAmount: "",
+      titleHolderName: "",
+      eastingCoordinates: "",
+      northingCoordinates: "",
+      areaSqm: "",
     },
-  })
+  });
 
-  const documentTypes = [
-    { value: "SURVEY_PLAN", label: "Survey Plan" },
-    { value: "SURVEY_REPORT", label: "Survey Report" },
-    { value: "COORDINATES", label: "Coordinates File" },
-    { value: "LEGAL_DOCS", label: "Legal Documents" },
-    { value: "OTHER", label: "Other" },
-  ]
+  const acceptedFileTypes = {
+    "application/pdf": [".pdf"],
+    "image/jpeg": [".jpg", ".jpeg"],
+    "image/png": [".png"],
+    "application/vnd.google-earth.kml+xml": [".kml"],
+    "application/dxf": [".dxf"],
+    "application/dwg": [".dwg"],
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || [])
+    const selectedFiles = Array.from(event.target.files || []);
 
     selectedFiles.forEach((file) => {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 10MB`)
-        return
+        toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
+        return;
       }
 
       // Check file type
-      const allowedTypes = [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/tiff",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/msword",
-        "text/csv",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ]
+      const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`;
+      const isAcceptedType = Object.values(acceptedFileTypes).some(
+        (extensions) => extensions.includes(fileExtension)
+      );
 
-      if (!allowedTypes.includes(file.type)) {
-        toast.error(`${file.name} is not a supported file type`)
-        return
+      if (!isAcceptedType) {
+        toast.error(`File type ${fileExtension} is not supported.`);
+        return;
       }
 
       const newFile: FileUpload = {
         file,
-        type: "OTHER",
+        type: file.type,
         progress: 0,
         uploaded: false,
-      }
+      };
 
-      setFiles((prev) => [...prev, newFile])
-    })
+      setFiles((prev) => [...prev, newFile]);
+    });
 
     // Reset input
-    event.target.value = ""
-  }
+    event.target.value = "";
+  };
 
   const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index))
-  }
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
-  const updateFileType = (index: number, type: string) => {
-    setFiles((prev) => prev.map((file, i) => (i === index ? { ...file, type } : file)))
-  }
-
-  const uploadFile = async (file: File, onProgress: (progress: number) => void): Promise<string> => {
-    const formData = new FormData()
-    formData.append("file", file)
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const progress = (event.loaded / event.total) * 100
-          onProgress(progress)
-        }
-      })
-
-      xhr.addEventListener("load", () => {
-        if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText)
-          resolve(response.url)
-        } else {
-          reject(new Error("Upload failed"))
-        }
-      })
-
-      xhr.addEventListener("error", () => {
-        reject(new Error("Upload failed"))
-      })
-
-      xhr.open("POST", "/api/upload")
-      xhr.send(formData)
-    })
-  }
-
-  const uploadAllFiles = async () => {
+  const uploadFiles = async () => {
     const uploadPromises = files.map(async (fileUpload, index) => {
-      if (fileUpload.uploaded) return fileUpload.url
+      if (fileUpload.uploaded) return fileUpload.url;
+
+      const formData = new FormData();
+      formData.append("file", fileUpload.file);
+      formData.append("type", getDocumentType(fileUpload.file.name));
 
       try {
-        const url = await uploadFile(fileUpload.file, (progress) => {
-          setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, progress } : f)))
-        })
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-        setFiles((prev) => prev.map((f, i) => (i === index ? { ...f, uploaded: true, url, progress: 100 } : f)))
+        if (!response.ok) {
+          throw new Error(`Upload failed for ${fileUpload.file.name}`);
+        }
 
-        return url
+        const result = await response.json();
+
+        // Update file upload progress
+        setFiles((prev) =>
+          prev.map((f, i) =>
+            i === index
+              ? { ...f, progress: 100, uploaded: true, url: result.url }
+              : f
+          )
+        );
+
+        return result.url;
       } catch (error) {
-        toast.error(`Failed to upload ${fileUpload.file.name}`)
-        throw error
+        toast.error(`Failed to upload ${fileUpload.file.name}`);
+        throw error;
       }
-    })
+    });
 
-    return Promise.all(uploadPromises)
-  }
+    return Promise.all(uploadPromises);
+  };
+
+  const getDocumentType = (filename: string) => {
+    const extension = filename.split(".").pop()?.toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return "PDF";
+      case "jpg":
+      case "jpeg":
+      case "png":
+        return "IMAGE";
+      case "kml":
+        return "KML_FILE";
+      case "dxf":
+        return "DXF_FILE";
+      case "dwg":
+        return "DWG_FILE";
+      default:
+        return "OTHER";
+    }
+  };
 
   const onSubmit = async (data: JobSubmissionData) => {
-    if (files.length === 0) {
-      toast.error("Please upload at least one document")
-      return
-    }
-
-    setIsSubmitting(true)
-    setUploadProgress(0)
+    setIsSubmitting(true);
+    setUploadProgress(0);
 
     try {
       // Upload files first
-      setUploadProgress(25)
-      const fileUrls = await uploadAllFiles()
-      setUploadProgress(75)
+      let documentUrls: string[] = [];
+      if (files.length > 0) {
+        setUploadProgress(25);
+        documentUrls = await uploadFiles();
+        setUploadProgress(50);
+      }
 
-      // Prepare documents data
-      const documents = files.map((fileUpload, index) => ({
-        fileName: fileUpload.file.name,
-        filePath: fileUrls[index],
-        fileSize: fileUpload.file.size,
-        mimeType: fileUpload.file.type,
-        documentType: fileUpload.type,
-      }))
+      // Submit job data
+      const jobData = {
+        ...data,
+        coordinates: data.coordinates
+          ? {
+              latitude: Number(data.coordinates.latitude),
+              longitude: Number(data.coordinates.longitude),
+            }
+          : undefined,
+        pillarNumbersRequired: data.pillarNumbersRequired
+          ? Number(data.pillarNumbersRequired)
+          : undefined,
+        cumulativePillarsQuarter: data.cumulativePillarsQuarter
+          ? Number(data.cumulativePillarsQuarter)
+          : undefined,
+        cumulativePillarsYear: data.cumulativePillarsYear
+          ? Number(data.cumulativePillarsYear)
+          : undefined,
+        documents: documentUrls,
+      };
 
-      // Submit job
+      setUploadProgress(75);
+
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...data,
-          documents,
-        }),
-      })
+        body: JSON.stringify(jobData),
+      });
 
-      setUploadProgress(100)
-
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(`Job number: ${result.jobNumber}`)
-        router.push("/dashboard/jobs")
-      } else {
-        const error = await response.json()
-        toast.error(error.message || "An error occurred")
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit job");
       }
+
+      setUploadProgress(100);
+      toast.success("Survey job submitted successfully!");
+
+      // Reset form
+      form.reset();
+      setFiles([]);
+
+      // Redirect to jobs dashboard
+      router.push("/dashboard/jobs");
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      console.error("Error submitting job:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to submit job"
+      );
     } finally {
-      setIsSubmitting(false)
-      setUploadProgress(0)
+      setIsSubmitting(false);
+      setUploadProgress(0);
     }
-  }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Submit New Survey Job</h1>
-        <p className="text-gray-600 mt-2">Fill out the form below to submit a new cadastral survey job</p>
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Submit New Survey Job
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Fill out the official survey application form with all required
+          details
+        </p>
       </div>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -236,53 +254,67 @@ export function JobSubmissionForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <User className="w-5 h-5" />
               Client Information
             </CardTitle>
-            <CardDescription>Details about the client requesting the survey</CardDescription>
+            <CardDescription>
+              Basic information about the client requesting the survey
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="clientName">Client Name *</Label>
-                <Input id="clientName" placeholder="Enter client's full name" {...form.register("clientName")} />
+                <Input
+                  id="clientName"
+                  {...form.register("clientName")}
+                  placeholder="Enter client's full name"
+                />
                 {form.formState.errors.clientName && (
-                  <p className="text-sm text-red-600">{form.formState.errors.clientName.message}</p>
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.clientName.message}
+                  </p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="titleHolderName">Title Holder Name</Label>
+                <Input
+                  id="titleHolderName"
+                  {...form.register("titleHolderName")}
+                  placeholder="Name on property title"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="clientPhone">Phone Number *</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="clientPhone"
-                    placeholder="Enter phone number"
-                    className="pl-10"
-                    {...form.register("clientPhone")}
-                  />
-                </div>
+                <Input
+                  id="clientPhone"
+                  type="tel"
+                  {...form.register("clientPhone")}
+                  placeholder="+234 xxx xxx xxxx"
+                />
                 {form.formState.errors.clientPhone && (
-                  <p className="text-sm text-red-600">{form.formState.errors.clientPhone.message}</p>
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.clientPhone.message}
+                  </p>
                 )}
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="clientEmail">Email Address (Optional)</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <div className="space-y-2">
+                <Label htmlFor="clientEmail">Email Address</Label>
                 <Input
                   id="clientEmail"
                   type="email"
-                  placeholder="Enter email address"
-                  className="pl-10"
                   {...form.register("clientEmail")}
+                  placeholder="client@email.com"
                 />
+                {form.formState.errors.clientEmail && (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.clientEmail.message}
+                  </p>
+                )}
               </div>
-              {form.formState.errors.clientEmail && (
-                <p className="text-sm text-red-600">{form.formState.errors.clientEmail.message}</p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -291,144 +323,266 @@ export function JobSubmissionForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+              <MapPin className="w-5 h-5" />
               Survey Details
             </CardTitle>
-            <CardDescription>Information about the survey location and requirements</CardDescription>
+            <CardDescription>
+              Official survey application information
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="location">Survey Location *</Label>
-              <Textarea
-                id="location"
-                placeholder="Enter detailed location description (e.g., Plot 123, Block A, New Layout, Port Harcourt, Rivers State)"
-                {...form.register("location")}
-              />
-              {form.formState.errors.location && (
-                <p className="text-sm text-red-600">{form.formState.errors.location.message}</p>
-              )}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude (Optional)</Label>
+                <Label htmlFor="location">Property Location *</Label>
                 <Input
-                  id="latitude"
-                  type="number"
-                  step="any"
-                  placeholder="e.g., 4.8156"
-                  {...form.register("coordinates.latitude", { valueAsNumber: true })}
+                  id="location"
+                  {...form.register("location")}
+                  placeholder="Enter property address/location"
+                />
+                {form.formState.errors.location && (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.location.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="planNumber">Plan Number</Label>
+                <Input
+                  id="planNumber"
+                  {...form.register("planNumber")}
+                  placeholder="Survey plan number"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude (Optional)</Label>
+                <Label htmlFor="areaSqm">Area (Square Meters)</Label>
                 <Input
-                  id="longitude"
-                  type="number"
-                  step="any"
-                  placeholder="e.g., 7.0498"
-                  {...form.register("coordinates.longitude", { valueAsNumber: true })}
+                  id="areaSqm"
+                  {...form.register("areaSqm")}
+                  placeholder="Property area in sqm"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Additional Description (Optional)</Label>
+              <Label htmlFor="description">Survey Description</Label>
               <Textarea
                 id="description"
-                placeholder="Any additional information about the survey requirements"
                 {...form.register("description")}
+                placeholder="Describe the survey requirements in detail..."
+                rows={3}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Document Upload */}
+        {/* Coordinates */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Document Upload
-            </CardTitle>
+            <CardTitle>Coordinates</CardTitle>
             <CardDescription>
-              Upload survey plans, reports, and other relevant documents (Max 10MB per file)
+              Property coordinates and pillar information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* File Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <div className="mt-4">
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="mt-2 block text-sm font-medium text-gray-900">
-                    Click to upload files or drag and drop
-                  </span>
-                  <span className="mt-1 block text-sm text-gray-500">
-                    PDF, DOC, DOCX, JPG, PNG, TIFF, CSV, XLS, XLSX up to 10MB
-                  </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="eastingCoordinates">Easting Coordinates</Label>
+                <Input
+                  id="eastingCoordinates"
+                  {...form.register("eastingCoordinates")}
+                  placeholder="Easting value"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="northingCoordinates">
+                  Northing Coordinates
+                </Label>
+                <Input
+                  id="northingCoordinates"
+                  {...form.register("northingCoordinates")}
+                  placeholder="Northing value"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pillarNumbersRequired">Pillars Required</Label>
+                <Input
+                  id="pillarNumbersRequired"
+                  type="number"
+                  {...form.register("pillarNumbersRequired", {
+                    valueAsNumber: true,
+                  })}
+                  placeholder="Number of pillars needed"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cumulativePillarsQuarter">
+                  Cumulative Pillars (Quarter)
+                </Label>
+                <Input
+                  id="cumulativePillarsQuarter"
+                  type="number"
+                  {...form.register("cumulativePillarsQuarter", {
+                    valueAsNumber: true,
+                  })}
+                  placeholder="Quarterly cumulative"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cumulativePillarsYear">
+                  Cumulative Pillars (Year)
+                </Label>
+                <Input
+                  id="cumulativePillarsYear"
+                  type="number"
+                  {...form.register("cumulativePillarsYear", {
+                    valueAsNumber: true,
+                  })}
+                  placeholder="Yearly cumulative"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Financial Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Financial Information</CardTitle>
+            <CardDescription>Payment and deposit details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="totalAmount">Total Amount</Label>
+                <Input
+                  id="totalAmount"
+                  {...form.register("totalAmount")}
+                  placeholder="Total survey cost"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stampReference">Stamp Reference</Label>
+                <Input
+                  id="stampReference"
+                  {...form.register("stampReference")}
+                  placeholder="Official stamp reference"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="depositTellerNumber">
+                  Deposit Teller Number
+                </Label>
+                <Input
+                  id="depositTellerNumber"
+                  {...form.register("depositTellerNumber")}
+                  placeholder="Bank teller number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="depositAmount">Deposit Amount</Label>
+                <Input
+                  id="depositAmount"
+                  {...form.register("depositAmount")}
+                  placeholder="Deposit amount"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="beaconTellerNumber">Beacon Teller Number</Label>
+                <Input
+                  id="beaconTellerNumber"
+                  {...form.register("beaconTellerNumber")}
+                  placeholder="Beacon teller number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="beaconAmount">Beacon Amount</Label>
+                <Input
+                  id="beaconAmount"
+                  {...form.register("beaconAmount")}
+                  placeholder="Beacon amount"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* File Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Document Upload
+            </CardTitle>
+            <CardDescription>
+              Upload supporting documents (PDF, Images, KML, DXF, DWG files)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <div className="space-y-2">
+                <Label
+                  htmlFor="file-upload"
+                  className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Click to upload files
                 </Label>
                 <Input
                   id="file-upload"
                   type="file"
                   multiple
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff,.csv,.xls,.xlsx"
+                  accept=".pdf,.jpg,.jpeg,.png,.kml,.dxf,.dwg"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
+                <p className="text-xs text-gray-500">
+                  Supported formats: PDF, JPG, PNG, KML, DXF, DWG (max 10MB
+                  each)
+                </p>
               </div>
             </div>
 
-            {/* File List */}
             {files.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h4 className="font-medium">Uploaded Files</h4>
-                {files.map((fileUpload, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{fileUpload.file.name}</p>
-                          <p className="text-sm text-gray-500">{(fileUpload.file.size / 1024 / 1024).toFixed(2)} MB</p>
-                        </div>
+                {files.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium">{file.file.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
-
-                      {fileUpload.progress > 0 && fileUpload.progress < 100 && (
-                        <div className="mt-2">
-                          <Progress value={fileUpload.progress} className="h-2" />
-                        </div>
-                      )}
                     </div>
-
-                    <div className="flex items-center space-x-2 ml-4">
-                      <Select value={fileUpload.type} onValueChange={(value) => updateFileType(index, value)}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {documentTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      {fileUpload.uploaded && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          Uploaded
-                        </Badge>
+                    <div className="flex items-center gap-2">
+                      {file.uploaded ? (
+                        <Badge variant="secondary">Uploaded</Badge>
+                      ) : (
+                        <Progress value={file.progress} className="w-20" />
                       )}
-
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFile(index)}
-                        className="text-red-600 hover:text-red-700"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -438,38 +592,26 @@ export function JobSubmissionForm() {
           </CardContent>
         </Card>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting || files.length === 0}>
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Survey Job"
-            )}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit Survey Job"}
           </Button>
         </div>
 
-        {/* Progress Bar */}
         {isSubmitting && uploadProgress > 0 && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Submitting job...</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Upload Progress</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} />
+          </div>
         )}
       </form>
     </div>
-  )
+  );
 }

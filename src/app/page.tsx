@@ -43,14 +43,19 @@ export default function HomePage() {
             Surveyor General&apos;s office to streamline cadastral survey
             processes in Rivers State, Nigeria.
           </p>
-          <div className="space-x-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href="/search">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
                 Search Pillar Numbers
               </Button>
             </Link>
-            <Link href="/register">
+            <Link href="/surveyors">
               <Button size="lg" variant="outline">
+                Find Surveyors
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="lg" variant="secondary">
                 Register as Surveyor
               </Button>
             </Link>
@@ -140,6 +145,11 @@ export default function HomePage() {
                 <li>
                   <Link href="/search" className="hover:text-white">
                     Search Pillars
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/surveyors" className="hover:text-white">
+                    Find Surveyors
                   </Link>
                 </li>
                 <li>

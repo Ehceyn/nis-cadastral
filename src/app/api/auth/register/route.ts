@@ -1,28 +1,48 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
-import { surveyorRegistrationSchema } from "@/lib/validations"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { surveyorRegistrationSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const validatedData = surveyorRegistrationSchema.parse(body)
+    const body = await request.json();
+    const validatedData = surveyorRegistrationSchema.parse(body);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
-    })
+    });
 
     if (existingUser) {
-      return NextResponse.json({ message: "User already exists" }, { status: 400 })
+      return NextResponse.json(
+        { message: "User already exists" },
+        { status: 400 }
+      );
     }
 
-    // Check if license number already exists
-    const existingSurveyor = await prisma.surveyor.findUnique({
-      where: { licenseNumber: validatedData.licenseNumber },
-    })
+    // Check if NIS membership number already exists
+    const existingNIS = await prisma.surveyor.findUnique({
+      where: { nisMembershipNumber: validatedData.nisMembershipNumber },
+    });
 
-    if (existingSurveyor) {
-      return NextResponse.json({ message: "License number already registered" }, { status: 400 })
+    if (existingNIS) {
+      return NextResponse.json(
+        { message: "NIS membership number already registered" },
+        { status: 400 }
+      );
+    }
+
+    // Check if SURCON registration number already exists
+    const existingSURCON = await prisma.surveyor.findUnique({
+      where: {
+        surconRegistrationNumber: validatedData.surconRegistrationNumber,
+      },
+    });
+
+    if (existingSURCON) {
+      return NextResponse.json(
+        { message: "SURCON registration number already registered" },
+        { status: 400 }
+      );
     }
 
     // Create user and surveyor
@@ -33,7 +53,8 @@ export async function POST(request: NextRequest) {
         role: "SURVEYOR",
         surveyor: {
           create: {
-            licenseNumber: validatedData.licenseNumber,
+            nisMembershipNumber: validatedData.nisMembershipNumber,
+            surconRegistrationNumber: validatedData.surconRegistrationNumber,
             firmName: validatedData.firmName,
             phoneNumber: validatedData.phoneNumber,
             address: validatedData.address,
@@ -44,7 +65,7 @@ export async function POST(request: NextRequest) {
       include: {
         surveyor: true,
       },
-    })
+    });
 
     return NextResponse.json({
       message: "Registration successful",
@@ -54,9 +75,12 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
       },
-    })
+    });
   } catch (error) {
-    console.error("Registration error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Registration error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

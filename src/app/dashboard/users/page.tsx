@@ -170,7 +170,7 @@ export default async function UserManagementPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>License Number</TableHead>
+                  <TableHead>SURCON Registration</TableHead>
                   <TableHead>Firm Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
@@ -190,7 +190,9 @@ export default async function UserManagementPage() {
                         {user.role.replace("_", " ")}
                       </Badge>
                     </TableCell>
-                    <TableCell>{user.surveyor?.licenseNumber || "-"}</TableCell>
+                    <TableCell>
+                      {user.surveyor?.surconRegistrationNumber || "-"}
+                    </TableCell>
                     <TableCell>{user.surveyor?.firmName || "-"}</TableCell>
                     <TableCell>
                       {user.surveyor ? (
@@ -261,7 +263,9 @@ export default async function UserManagementPage() {
                     </div>
                     <p className="text-sm text-gray-600">{user.email}</p>
                     <div className="flex space-x-4 text-sm text-gray-500">
-                      <span>License: {user.surveyor?.licenseNumber}</span>
+                      <span>
+                        SURCON: {user.surveyor?.surconRegistrationNumber}
+                      </span>
                       <span>Firm: {user.surveyor?.firmName}</span>
                     </div>
                   </div>

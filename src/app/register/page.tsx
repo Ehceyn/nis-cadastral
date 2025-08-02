@@ -1,40 +1,49 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin } from "lucide-react"
-import { toast } from "sonner"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    licenseNumber: "",
+    nisMembershipNumber: "",
+    surconRegistrationNumber: "",
     firmName: "",
     phoneNumber: "",
     address: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -43,21 +52,23 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      })
+      });
 
       if (response.ok) {
-        toast.success("Registration Successful. Your account has been created. Please wait for verification.")
-        router.push("/login")
+        toast.success(
+          "Registration Successful. Your account has been created. Please wait for verification."
+        );
+        router.push("/login");
       } else {
-        const error = await response.json()
-        toast.error(error.message || "An error occurred")
+        const error = await response.json();
+        toast.error(error.message || "An error occurred");
       }
     } catch (error) {
-      toast.error("An unexpected error occurred")
+      toast.error("An unexpected error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
@@ -67,7 +78,9 @@ export default function RegisterPage() {
             <MapPin className="h-12 w-12 text-blue-600" />
           </div>
           <CardTitle className="text-2xl">Register as Surveyor</CardTitle>
-          <CardDescription>Create your account for Rivers State Cadastral Survey Platform</CardDescription>
+          <CardDescription>
+            Create your account for Rivers State Cadastral Survey Platform
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,27 +112,42 @@ export default function RegisterPage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="licenseNumber">License Number</Label>
+                <Label htmlFor="nisMembershipNumber">
+                  NIS Membership Number *
+                </Label>
                 <Input
-                  id="licenseNumber"
-                  name="licenseNumber"
-                  placeholder="Enter your license number"
-                  value={formData.licenseNumber}
+                  id="nisMembershipNumber"
+                  name="nisMembershipNumber"
+                  placeholder="Enter your NIS membership number"
+                  value={formData.nisMembershipNumber}
                   onChange={handleChange}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="firmName">Firm Name</Label>
+                <Label htmlFor="surconRegistrationNumber">
+                  SURCON Registration Number *
+                </Label>
                 <Input
-                  id="firmName"
-                  name="firmName"
-                  placeholder="Enter your firm name"
-                  value={formData.firmName}
+                  id="surconRegistrationNumber"
+                  name="surconRegistrationNumber"
+                  placeholder="Enter your SURCON registration number"
+                  value={formData.surconRegistrationNumber}
                   onChange={handleChange}
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="firmName">Firm Name (Optional)</Label>
+              <Input
+                id="firmName"
+                name="firmName"
+                placeholder="Enter your firm name (optional)"
+                value={formData.firmName}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="space-y-2">
@@ -162,5 +190,5 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

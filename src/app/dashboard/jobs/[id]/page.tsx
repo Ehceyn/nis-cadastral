@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DocumentsSection } from "./components/documents-section";
 import {
   ArrowLeft,
   FileText,
@@ -24,6 +25,7 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Eye,
 } from "lucide-react";
 
 interface JobDetailPageProps {
@@ -221,42 +223,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           </Card>
 
           {/* Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Documents ({job.documents.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {job.documents.length === 0 ? (
-                <p className="text-gray-500">No documents uploaded</p>
-              ) : (
-                <div className="space-y-3">
-                  {job.documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium">{doc.fileName}</p>
-                          <p className="text-sm text-gray-500">
-                            {doc.documentType.replace("_", " ")} •{" "}
-                            {(doc.fileSize / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <DocumentsSection documents={job.documents} />
 
           {/* Pillar Numbers */}
           {job.pillarNumbers.length > 0 && (
@@ -355,9 +322,11 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  License
+                  SURCON Registration
                 </label>
-                <p className="text-gray-900">{job.surveyor.licenseNumber}</p>
+                <p className="text-gray-900">
+                  {job.surveyor.surconRegistrationNumber}
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">

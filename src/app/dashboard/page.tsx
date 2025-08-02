@@ -54,6 +54,16 @@ export default async function DashboardPage() {
     rejectedJobs: 0,
   };
 
+  // System-wide stats for admins and NIS officers
+  let systemStats = {
+    totalUsers: 0,
+    totalSurveyors: 0,
+    pendingSurveyors: 0,
+    totalJobs: 0,
+    pendingReview: 0,
+    completedJobs: 0,
+  };
+
   if (user?.surveyor) {
     jobs = await prisma.surveyJob.findMany({
       where: { userId: user.id },
@@ -75,6 +85,42 @@ export default async function DashboardPage() {
       rejectedJobs: allJobs.filter((job) => job.status.includes("REJECTED"))
         .length,
     };
+  } else if (
+    session.user.role === "ADMIN" ||
+    session.user.role === "NIS_OFFICER"
+  ) {
+    // Fetch system-wide statistics
+    const [allUsers, allJobs] = await Promise.all([
+      prisma.user.findMany({
+        include: { surveyor: true },
+      }),
+      prisma.surveyJob.findMany({
+        include: {
+          surveyor: {
+            include: { user: true },
+          },
+        },
+        orderBy: { submittedAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    systemStats = {
+      totalUsers: allUsers.length,
+      totalSurveyors: allUsers.filter((u) => u.role === "SURVEYOR").length,
+      pendingSurveyors: allUsers.filter((u) => u.surveyor?.status === "PENDING")
+        .length,
+      totalJobs: allJobs.length,
+      pendingReview: allJobs.filter((job) =>
+        session.user.role === "NIS_OFFICER"
+          ? job.status === "NIS_REVIEW" || job.status === "SUBMITTED"
+          : ["SUBMITTED", "NIS_REVIEW", "ADMIN_REVIEW"].includes(job.status)
+      ).length,
+      completedJobs: allJobs.filter((job) => job.status === "COMPLETED").length,
+    };
+
+    // For NIS officers and admins, show recent jobs
+    jobs = allJobs as any;
   }
 
   const getStatusColor = (status: string) => {
@@ -145,9 +191,9 @@ export default async function DashboardPage() {
                 <h4 className="font-medium mb-2">Account Details:</h4>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">License Number:</span>
+                    <span className="font-medium">SURCON Registration:</span>
                     <p className="text-gray-600">
-                      {user.surveyor.licenseNumber}
+                      {user.surveyor.surconRegistrationNumber}
                     </p>
                   </div>
                   <div>
