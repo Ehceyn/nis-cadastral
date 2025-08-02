@@ -377,7 +377,7 @@ export function JobSubmissionForm() {
           </CardContent>
         </Card>
 
-        {/* Coordinates */}
+        {/* Coordinates section */}
         <Card>
           <CardHeader>
             <CardTitle>Coordinates</CardTitle>
