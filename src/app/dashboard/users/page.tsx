@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -241,9 +242,11 @@ export default async function UserManagementPage() {
                             </Badge>
                           )
                         ) : null}
-                        <Button size="sm" variant="outline">
-                          View
-                        </Button>
+                        <Link href={`/dashboard/users/${user.id}`}>
+                          <Button size="sm" variant="outline">
+                            View
+                          </Button>
+                        </Link>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -320,6 +323,11 @@ export default async function UserManagementPage() {
                         />
                       ) : null
                     ) : null}
+                    <Link href={`/dashboard/users/${user.id}`}>
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))}
