@@ -30,7 +30,8 @@ export default async function UserManagementPage() {
     redirect("/login");
   }
 
-  if (session.user.role !== "ADMIN") {
+  // Allow both ADMIN and NIS_OFFICER to access user management
+  if (session.user.role !== "ADMIN" && session.user.role !== "NIS_OFFICER") {
     redirect("/dashboard");
   }
 

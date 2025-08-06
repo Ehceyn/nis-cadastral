@@ -52,11 +52,14 @@ export function DashboardNav({ user }: DashboardNavProps) {
   }
 
   if (user.role === "NIS_OFFICER") {
-    navigation.push({
-      name: "Review Queue",
-      href: "/dashboard/review",
-      icon: Users,
-    });
+    navigation.push(
+      {
+        name: "Review Queue",
+        href: "/dashboard/review",
+        icon: Users,
+      },
+      { name: "User Management", href: "/dashboard/users", icon: Users }
+    );
   }
 
   if (user.role === "ADMIN") {

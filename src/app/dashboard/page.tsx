@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   UserCheck,
   Plus,
+  Users,
 } from "lucide-react";
+import { ApprovalButtons } from "@/components/approval-buttons";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -64,6 +66,9 @@ export default async function DashboardPage() {
     completedJobs: 0,
   };
 
+  // Pending surveyors for NIS officers and admins
+  let pendingSurveyors: any[] = [];
+
   if (user?.surveyor) {
     jobs = await prisma.surveyJob.findMany({
       where: { userId: user.id },
@@ -104,6 +109,13 @@ export default async function DashboardPage() {
         take: 10,
       }),
     ]);
+
+    // Get pending surveyors based on role
+    pendingSurveyors = allUsers.filter((u) =>
+      session.user.role === "NIS_OFFICER"
+        ? u.surveyor?.status === "PENDING_NIS_REVIEW"
+        : u.surveyor?.status === "NIS_APPROVED"
+    );
 
     systemStats = {
       totalUsers: allUsers.length,
@@ -510,6 +522,109 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Pending Surveyor Registrations - NIS Officers and Admins */}
+          {(session.user.role === "NIS_OFFICER" ||
+            session.user.role === "ADMIN") && (
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>
+                      {session.user.role === "NIS_OFFICER"
+                        ? "Pending Surveyor Registrations"
+                        : "NIS Approved Surveyors"}
+                    </CardTitle>
+                    <CardDescription>
+                      {session.user.role === "NIS_OFFICER"
+                        ? "New surveyor registrations requiring NIS verification"
+                        : "Surveyors approved by NIS awaiting final admin approval"}
+                    </CardDescription>
+                  </div>
+                  <Link href="/dashboard/users">
+                    <Button>
+                      <Users className="h-4 w-4 mr-2" />
+                      View All
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {pendingSurveyors.length === 0 ? (
+                    <div className="text-center py-8">
+                      <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No pending registrations
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        {session.user.role === "NIS_OFFICER"
+                          ? "No new surveyor registrations to review at the moment."
+                          : "No NIS-approved surveyors awaiting admin approval."}
+                      </p>
+                    </div>
+                  ) : (
+                    pendingSurveyors.slice(0, 5).map((user: any) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{user.name}</span>
+                            <Badge
+                              className={
+                                user.surveyor?.status === "NIS_APPROVED"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }
+                            >
+                              {user.surveyor?.status === "NIS_APPROVED"
+                                ? "Awaiting Admin Approval"
+                                : "Pending NIS Review"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <div className="flex space-x-4 text-sm text-gray-500">
+                            <span>
+                              NIS: {user.surveyor?.nisMembershipNumber}
+                            </span>
+                            <span>
+                              SURCON: {user.surveyor?.surconRegistrationNumber}
+                            </span>
+                            {user.surveyor?.firmName && (
+                              <span>Firm: {user.surveyor.firmName}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          {user.surveyor?.status === "PENDING_NIS_REVIEW" &&
+                          session.user.role === "NIS_OFFICER" ? (
+                            <ApprovalButtons
+                              itemId={user.surveyor.id}
+                              itemType="surveyor"
+                              userRole="NIS_OFFICER"
+                            />
+                          ) : user.surveyor?.status === "NIS_APPROVED" &&
+                            session.user.role === "ADMIN" ? (
+                            <ApprovalButtons
+                              itemId={user.surveyor.id}
+                              itemType="surveyor"
+                              userRole="ADMIN"
+                            />
+                          ) : (
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <Card>

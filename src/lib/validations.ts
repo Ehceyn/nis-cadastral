@@ -42,10 +42,10 @@ export const surveyJobSchema = z.object({
 export const surveyorRegistrationSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Valid email is required"),
-  nisMembershipNumber: z.string().min(5, "NIS membership number is required"),
+  nisMembershipNumber: z.string().min(1, "NIS membership number is required"),
   surconRegistrationNumber: z
     .string()
-    .min(5, "SURCON registration number is required"),
+    .min(1, "SURCON registration number is required"),
   firmName: z.string().optional(),
   phoneNumber: z.string().min(10, "Valid phone number is required"),
   address: z.string().min(10, "Address is required"),

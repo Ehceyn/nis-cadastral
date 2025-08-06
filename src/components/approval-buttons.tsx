@@ -26,8 +26,8 @@ export function ApprovalButtons({
     try {
       const endpoint =
         itemType === "surveyor"
-          ? `/api/surveyors/${userRole.toLowerCase()}-approve`
-          : `/api/jobs/${userRole.toLowerCase()}-approve`;
+          ? `/api/surveyors/${userRole === "NIS_OFFICER" ? "nis" : "admin"}-approve`
+          : `/api/jobs/${userRole === "NIS_OFFICER" ? "nis" : "admin"}-approve`;
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -67,8 +67,8 @@ export function ApprovalButtons({
     try {
       const endpoint =
         itemType === "surveyor"
-          ? `/api/surveyors/${userRole.toLowerCase()}-reject`
-          : `/api/jobs/${userRole.toLowerCase()}-reject`;
+          ? `/api/surveyors/${userRole === "NIS_OFFICER" ? "nis" : "admin"}-reject`
+          : `/api/jobs/${userRole === "NIS_OFFICER" ? "nis" : "admin"}-reject`;
 
       const response = await fetch(endpoint, {
         method: "POST",

@@ -76,8 +76,31 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
+
+    // Check if it's a validation error
+    if (error?.name === "ZodError") {
+      return NextResponse.json(
+        {
+          message: "Validation error",
+          errors: error.errors.map((err: any) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if it's a database constraint error
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { message: "A record with this information already exists" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
