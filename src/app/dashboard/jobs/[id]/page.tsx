@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DocumentsSection } from "./components/documents-section";
+import { ApprovalButtons } from "@/components/approval-buttons";
 import {
   ArrowLeft,
   FileText,
@@ -112,7 +113,13 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/dashboard/jobs">
+          <Link
+            href={
+              session.user.role === "SURVEYOR"
+                ? "/dashboard/jobs"
+                : "/dashboard"
+            }
+          >
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Jobs
@@ -336,6 +343,82 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Job Actions - Show approval buttons for NIS Officers and Admins */}
+          {(session.user.role === "NIS_OFFICER" ||
+            session.user.role === "ADMIN") && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Review Actions</CardTitle>
+                <CardDescription>
+                  {session.user.role === "NIS_OFFICER"
+                    ? "Review and approve/reject this survey job"
+                    : "Final approval and pillar number assignment"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Current Status
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {getStatusText(job.status)}
+                        </p>
+                      </div>
+                      <Badge
+                        className={getStatusColor(job.status)}
+                        variant="secondary"
+                      >
+                        {getStatusText(job.status)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Show approval buttons based on job status and user role */}
+                  {(job.status === "SUBMITTED" ||
+                    job.status === "NIS_REVIEW") &&
+                  session.user.role === "NIS_OFFICER" ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        NIS Officer Review
+                      </p>
+                      <ApprovalButtons
+                        itemId={job.id}
+                        itemType="job"
+                        userRole="NIS_OFFICER"
+                      />
+                    </div>
+                  ) : (job.status === "ADMIN_REVIEW" ||
+                      job.status === "NIS_APPROVED") &&
+                    session.user.role === "ADMIN" ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        Admin Final Approval & Pillar Assignment
+                      </p>
+                      <ApprovalButtons
+                        itemId={job.id}
+                        itemType="job"
+                        userRole="ADMIN"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">
+                        {job.status === "COMPLETED"
+                          ? "Job has been completed and approved"
+                          : job.status.includes("REJECTED")
+                            ? "Job has been rejected"
+                            : "No actions available for current status"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
