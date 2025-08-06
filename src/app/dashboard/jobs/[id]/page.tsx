@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DocumentsSection } from "./components/documents-section";
 import { ApprovalButtons } from "@/components/approval-buttons";
+import { AdminJobApproval } from "@/components/admin-job-approval";
 import {
   ArrowLeft,
   FileText,
@@ -398,10 +399,10 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       <p className="text-sm font-medium text-gray-700">
                         Admin Final Approval & Pillar Assignment
                       </p>
-                      <ApprovalButtons
-                        itemId={job.id}
-                        itemType="job"
-                        userRole="ADMIN"
+                      <AdminJobApproval
+                        jobId={job.id}
+                        jobNumber={job.jobNumber}
+                        onSuccess={() => window.location.reload()}
                       />
                     </div>
                   ) : (
