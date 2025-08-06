@@ -17,7 +17,7 @@ import { toast } from "sonner";
 interface PillarMapProps {
   pillar: {
     pillarNumber: string;
-    coordinates: { lat: number; lng: number };
+    coordinates: { latitude: number; longitude: number };
     issuedDate: string;
     surveyor: {
       name: string;
@@ -32,7 +32,7 @@ interface PillarMapProps {
   } | null;
   nearbyPillars?: Array<{
     pillarNumber: string;
-    coordinates: { lat: number; lng: number };
+    coordinates: { latitude: number; longitude: number };
     distance?: number;
   }>;
 }
@@ -45,6 +45,33 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
 
   useEffect(() => {
     if (!pillar || !mapRef.current) return;
+
+    // Validate and convert coordinates
+    const validateCoordinates = (coords: any) => {
+      if (!coords || typeof coords !== "object") return null;
+
+      const lat = Number(coords.latitude);
+      const lng = Number(coords.longitude);
+
+      if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+        return null;
+      }
+
+      // Check if coordinates are within valid ranges
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return null;
+      }
+
+      return { lat, lng };
+    };
+
+    const validCoordinates = validateCoordinates(pillar.coordinates);
+
+    if (!validCoordinates) {
+      setMapError("Invalid coordinates provided for this pillar");
+      setIsLoading(false);
+      return;
+    }
 
     const initMap = async () => {
       try {
@@ -63,7 +90,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
         const google = await loader.load();
 
         const map = new (google as any).maps.Map(mapRef.current!, {
-          center: pillar.coordinates,
+          center: validCoordinates,
           zoom: 16,
           mapTypeId: (google as any).maps.MapTypeId.HYBRID,
           mapTypeControl: true,
@@ -76,7 +103,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
 
         // Create custom marker for the main pillar
         const mainMarker = new (google as any).maps.Marker({
-          position: pillar.coordinates,
+          position: validCoordinates,
           map: map,
           title: pillar.pillarNumber,
           icon: {
@@ -104,7 +131,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
                 <p><strong>Client:</strong> ${pillar.surveyJob.clientName}</p>
                 <p><strong>Surveyor:</strong> ${pillar.surveyor.name}</p>
                 <p><strong>Firm:</strong> ${pillar.surveyor.firmName}</p>
-                <p><strong>Coordinates:</strong> ${pillar.coordinates.lat.toFixed(6)}, ${pillar.coordinates.lng.toFixed(6)}</p>
+                <p><strong>Coordinates:</strong> ${validCoordinates.lat.toFixed(6)}, ${validCoordinates.lng.toFixed(6)}</p>
                 <p><strong>Issued:</strong> ${new Date(pillar.issuedDate).toLocaleDateString()}</p>
               </div>
             </div>
@@ -117,8 +144,11 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
 
         // Add nearby pillars if available
         nearbyPillars.forEach((nearbyPillar, index) => {
+          const nearbyCoords = validateCoordinates(nearbyPillar.coordinates);
+          if (!nearbyCoords) return; // Skip invalid coordinates
+
           const nearbyMarker = new (google as any).maps.Marker({
-            position: nearbyPillar.coordinates,
+            position: nearbyCoords,
             map: map,
             title: nearbyPillar.pillarNumber,
             icon: {
@@ -141,7 +171,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
               <div class="p-2">
                 <h4 class="font-bold">${nearbyPillar.pillarNumber}</h4>
                 <p class="text-sm">Distance: ${nearbyPillar.distance?.toFixed(2)} km</p>
-                <p class="text-sm">Coordinates: ${nearbyPillar.coordinates.lat.toFixed(6)}, ${nearbyPillar.coordinates.lng.toFixed(6)}</p>
+                <p class="text-sm">Coordinates: ${nearbyCoords.lat.toFixed(6)}, ${nearbyCoords.lng.toFixed(6)}</p>
               </div>
             `,
           });
@@ -160,7 +190,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
             fillColor: "#2563eb",
             fillOpacity: 0.1,
             map: map,
-            center: pillar.coordinates,
+            center: validCoordinates,
             radius: 5000, // 5km radius
           });
         }
@@ -180,24 +210,58 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
 
   const copyCoordinates = () => {
     if (pillar) {
-      const coords = `${pillar.coordinates.lat}, ${pillar.coordinates.lng}`;
-      navigator.clipboard.writeText(coords);
-      toast.success("Coordinates copied to clipboard!");
+      const coords = validateCoordinates(pillar.coordinates);
+      if (coords) {
+        const coordsString = `${coords.lat}, ${coords.lng}`;
+        navigator.clipboard.writeText(coordsString);
+        toast.success("Coordinates copied to clipboard!");
+      } else {
+        toast.error("Invalid coordinates");
+      }
     }
   };
 
   const openInGoogleMaps = () => {
     if (pillar) {
-      const url = `https://www.google.com/maps?q=${pillar.coordinates.lat},${pillar.coordinates.lng}`;
-      window.open(url, "_blank");
+      const coords = validateCoordinates(pillar.coordinates);
+      if (coords) {
+        const url = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+        window.open(url, "_blank");
+      } else {
+        toast.error("Invalid coordinates");
+      }
     }
   };
 
   const openInGoogleEarth = () => {
     if (pillar) {
-      const url = `https://earth.google.com/web/@${pillar.coordinates.lat},${pillar.coordinates.lng},0a,1000d,35y,0h,0t,0r`;
-      window.open(url, "_blank");
+      const coords = validateCoordinates(pillar.coordinates);
+      if (coords) {
+        const url = `https://earth.google.com/web/@${coords.lat},${coords.lng},0a,1000d,35y,0h,0t,0r`;
+        window.open(url, "_blank");
+      } else {
+        toast.error("Invalid coordinates");
+      }
     }
+  };
+
+  // Helper function to validate coordinates (moved outside useEffect for reuse)
+  const validateCoordinates = (coords: any) => {
+    if (!coords || typeof coords !== "object") return null;
+
+    const lat = Number(coords.latitude);
+    const lng = Number(coords.longitude);
+
+    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+      return null;
+    }
+
+    // Check if coordinates are within valid ranges
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+
+    return { lat, lng };
   };
 
   if (!pillar) {
@@ -295,8 +359,12 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
               </div>
               <div className="text-xs">
                 <Badge variant="outline">
-                  {pillar.coordinates.lat.toFixed(6)},{" "}
-                  {pillar.coordinates.lng.toFixed(6)}
+                  {(() => {
+                    const coords = validateCoordinates(pillar.coordinates);
+                    return coords
+                      ? `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`
+                      : "Invalid coordinates";
+                  })()}
                 </Badge>
               </div>
             </div>

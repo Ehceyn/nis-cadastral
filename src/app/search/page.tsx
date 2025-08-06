@@ -21,7 +21,7 @@ import { PillarMap } from "@/components/pillar-map";
 
 interface PillarResult {
   pillarNumber: string;
-  coordinates: { lat: number; lng: number };
+  coordinates: { latitude: number; longitude: number };
   issuedDate: string;
   surveyor: {
     name: string;
@@ -35,7 +35,7 @@ interface PillarResult {
   };
   nearbyPillars?: Array<{
     pillarNumber: string;
-    coordinates: { lat: number; lng: number };
+    coordinates: { latitude: number; longitude: number };
     distance: number;
   }>;
 }
@@ -214,7 +214,8 @@ export default function SearchPage() {
                           <MapPin className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">Coordinates:</span>
                           <span>
-                            {result.coordinates.lat}, {result.coordinates.lng}
+                            {result.coordinates.latitude},{" "}
+                            {result.coordinates.longitude}
                           </span>
                         </div>
                       </div>
@@ -298,8 +299,8 @@ export default function SearchPage() {
                                 </Badge>
                               </div>
                               <p className="text-xs text-gray-600">
-                                {nearbyPillar.coordinates.lat.toFixed(6)},{" "}
-                                {nearbyPillar.coordinates.lng.toFixed(6)}
+                                {nearbyPillar.coordinates.latitude.toFixed(6)},{" "}
+                                {nearbyPillar.coordinates.longitude.toFixed(6)}
                               </p>
                             </div>
                           </div>

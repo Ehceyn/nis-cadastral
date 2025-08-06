@@ -402,7 +402,6 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       <AdminJobApproval
                         jobId={job.id}
                         jobNumber={job.jobNumber}
-                        onSuccess={() => window.location.reload()}
                       />
                     </div>
                   ) : (
