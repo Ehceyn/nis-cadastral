@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Users, UserCheck, UserX, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ApprovalButtons } from "@/components/approval-buttons";
 
 export default async function UserManagementPage() {
   const session = await getServerSession(authOptions);
@@ -43,14 +44,17 @@ export default async function UserManagementPage() {
     },
   });
 
-  // Get statistics
+  // Get statistics based on role access
   const stats = {
     totalUsers: users.length,
     totalSurveyors: users.filter((u) => u.role === "SURVEYOR").length,
     verifiedSurveyors: users.filter((u) => u.surveyor?.status === "VERIFIED")
       .length,
-    pendingSurveyors: users.filter((u) => u.surveyor?.status === "PENDING")
-      .length,
+    pendingSurveyors: users.filter((u) =>
+      session.user.role === "NIS_OFFICER"
+        ? ["PENDING", "PENDING_NIS_REVIEW"].includes(u.surveyor?.status || "")
+        : u.surveyor?.status === "NIS_APPROVED"
+    ).length,
   };
 
   const getRoleColor = (role: string) => {
@@ -211,16 +215,31 @@ export default async function UserManagementPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        {user.surveyor?.status === "PENDING" && (
-                          <>
-                            <Button size="sm" variant="outline">
-                              Verify
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              Reject
-                            </Button>
-                          </>
-                        )}
+                        {user.surveyor?.status === "PENDING" ||
+                        user.surveyor?.status === "PENDING_NIS_REVIEW" ? (
+                          session.user.role === "NIS_OFFICER" ? (
+                            <ApprovalButtons
+                              itemId={user.surveyor.id}
+                              itemType="surveyor"
+                              userRole="NIS_OFFICER"
+                            />
+                          ) : null
+                        ) : user.surveyor?.status === "NIS_APPROVED" ? (
+                          session.user.role === "ADMIN" ? (
+                            <ApprovalButtons
+                              itemId={user.surveyor.id}
+                              itemType="surveyor"
+                              userRole="ADMIN"
+                            />
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800"
+                            >
+                              Awaiting Admin
+                            </Badge>
+                          )
+                        ) : null}
                         <Button size="sm" variant="outline">
                           View
                         </Button>
@@ -245,7 +264,13 @@ export default async function UserManagementPage() {
         <CardContent>
           <div className="space-y-4">
             {users
-              .filter((u) => u.surveyor?.status === "PENDING")
+              .filter((u) =>
+                session.user.role === "NIS_OFFICER"
+                  ? ["PENDING", "PENDING_NIS_REVIEW"].includes(
+                      u.surveyor?.status || ""
+                    )
+                  : u.surveyor?.status === "NIS_APPROVED"
+              )
               .map((user) => (
                 <div
                   key={user.id}
@@ -256,9 +281,15 @@ export default async function UserManagementPage() {
                       <span className="font-medium">{user.name}</span>
                       <Badge
                         variant="secondary"
-                        className="bg-yellow-100 text-yellow-800"
+                        className={
+                          user.surveyor?.status === "NIS_APPROVED"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }
                       >
-                        Pending Verification
+                        {user.surveyor?.status === "NIS_APPROVED"
+                          ? "Awaiting Admin Approval"
+                          : "Pending NIS Review"}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600">{user.email}</p>
@@ -270,26 +301,34 @@ export default async function UserManagementPage() {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <UserCheck className="h-4 w-4 mr-2" />
-                      Verify
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <UserX className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
+                    {user.surveyor?.status === "PENDING" ||
+                    user.surveyor?.status === "PENDING_NIS_REVIEW" ? (
+                      session.user.role === "NIS_OFFICER" ? (
+                        <ApprovalButtons
+                          itemId={user.surveyor!.id}
+                          itemType="surveyor"
+                          userRole="NIS_OFFICER"
+                        />
+                      ) : null
+                    ) : user.surveyor?.status === "NIS_APPROVED" ? (
+                      session.user.role === "ADMIN" ? (
+                        <ApprovalButtons
+                          itemId={user.surveyor!.id}
+                          itemType="surveyor"
+                          userRole="ADMIN"
+                        />
+                      ) : null
+                    ) : null}
                   </div>
                 </div>
               ))}
-            {users.filter((u) => u.surveyor?.status === "PENDING").length ===
-              0 && (
+            {users.filter((u) =>
+              session.user.role === "NIS_OFFICER"
+                ? ["PENDING", "PENDING_NIS_REVIEW"].includes(
+                    u.surveyor?.status || ""
+                  )
+                : u.surveyor?.status === "NIS_APPROVED"
+            ).length === 0 && (
               <p className="text-gray-500 text-center py-8">
                 No pending verifications
               </p>

@@ -198,7 +198,11 @@ export function JobsServerSearch() {
     router.push("/dashboard/jobs");
   };
 
-  const hasActiveFilters = searchQuery || (statusFilter && statusFilter !== "ALL") || dateFrom || dateTo;
+  const hasActiveFilters =
+    searchQuery ||
+    (statusFilter && statusFilter !== "ALL") ||
+    dateFrom ||
+    dateTo;
 
   const handlePageChange = (page: number) => {
     updateFilters({ page });

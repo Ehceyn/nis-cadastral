@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
         eastingCoordinates: validatedData.eastingCoordinates || null,
         northingCoordinates: validatedData.northingCoordinates || null,
         areaSqm: validatedData.areaSqm || null,
+        status: "NIS_REVIEW", // Start with NIS review
         userId: session.user.id,
         surveyorId: user.surveyor.id,
         documents: {

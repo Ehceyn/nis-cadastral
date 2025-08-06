@@ -108,29 +108,49 @@ export default async function DashboardPage() {
     systemStats = {
       totalUsers: allUsers.length,
       totalSurveyors: allUsers.filter((u) => u.role === "SURVEYOR").length,
-      pendingSurveyors: allUsers.filter((u) => u.surveyor?.status === "PENDING")
-        .length,
+      pendingSurveyors: allUsers.filter((u) =>
+        session.user.role === "NIS_OFFICER"
+          ? u.surveyor?.status === "PENDING_NIS_REVIEW"
+          : u.surveyor?.status === "NIS_APPROVED"
+      ).length,
       totalJobs: allJobs.length,
       pendingReview: allJobs.filter((job) =>
         session.user.role === "NIS_OFFICER"
           ? job.status === "NIS_REVIEW" || job.status === "SUBMITTED"
-          : ["SUBMITTED", "NIS_REVIEW", "ADMIN_REVIEW"].includes(job.status)
+          : job.status === "ADMIN_REVIEW" || job.status === "NIS_APPROVED"
       ).length,
-      completedJobs: allJobs.filter((job) => job.status === "COMPLETED").length,
+      completedJobs: allJobs.filter(
+        (job) => job.status === "COMPLETED" || job.status === "ADMIN_APPROVED"
+      ).length,
     };
 
-    // For NIS officers and admins, show recent jobs
-    jobs = allJobs as any;
+    // For role-specific jobs
+    jobs = allJobs.filter((job) =>
+      session.user.role === "NIS_OFFICER"
+        ? ["SUBMITTED", "NIS_REVIEW"].includes(job.status)
+        : session.user.role === "ADMIN"
+          ? ["ADMIN_REVIEW", "NIS_APPROVED"].includes(job.status)
+          : false
+    ) as any;
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":
+      case "ADMIN_APPROVED":
         return "bg-green-100 text-green-800";
       case "NIS_REVIEW":
+      case "PENDING_NIS_REVIEW":
         return "bg-yellow-100 text-yellow-800";
-      case "SUBMITTED":
+      case "ADMIN_REVIEW":
+      case "NIS_APPROVED":
         return "bg-blue-100 text-blue-800";
+      case "SUBMITTED":
+        return "bg-purple-100 text-purple-800";
+      case "NIS_REJECTED":
+      case "ADMIN_REJECTED":
+      case "REJECTED":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -143,7 +163,11 @@ export default async function DashboardPage() {
           Welcome back, {session.user.name}
         </h1>
         <p className="text-gray-600 mt-2">
-          Here&apos;s an overview of your survey activities
+          {session.user.role === "NIS_OFFICER"
+            ? "Review pending registrations and survey job submissions"
+            : session.user.role === "ADMIN"
+              ? "Manage final approvals and system oversight"
+              : "Here's an overview of your survey activities"}
         </p>
       </div>
 
@@ -340,6 +364,194 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* System Dashboard for NIS Officers and Admins */}
+      {(session.user.role === "NIS_OFFICER" ||
+        session.user.role === "ADMIN") && (
+        <div className="space-y-6">
+          {/* System Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {session.user.role === "NIS_OFFICER"
+                    ? "Pending NIS Review"
+                    : "Pending Admin Review"}
+                </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {systemStats.pendingReview}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {session.user.role === "NIS_OFFICER"
+                    ? "Jobs awaiting NIS review"
+                    : "Jobs awaiting final approval"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {session.user.role === "NIS_OFFICER"
+                    ? "Pending Surveyors"
+                    : "NIS Approved Surveyors"}
+                </CardTitle>
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {systemStats.pendingSurveyors}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {session.user.role === "NIS_OFFICER"
+                    ? "New registrations to review"
+                    : "Awaiting final approval"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Jobs
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {systemStats.totalJobs}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  All survey jobs in system
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>
+                    {session.user.role === "NIS_OFFICER"
+                      ? "Jobs Pending NIS Review"
+                      : "Jobs Pending Admin Review"}
+                  </CardTitle>
+                  <CardDescription>
+                    {session.user.role === "NIS_OFFICER"
+                      ? "Recent job submissions requiring your review"
+                      : "Jobs approved by NIS awaiting final approval"}
+                  </CardDescription>
+                </div>
+                <Link
+                  href={
+                    session.user.role === "NIS_OFFICER"
+                      ? "/dashboard/review"
+                      : "/dashboard/admin-review"
+                  }
+                >
+                  <Button>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View All
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {jobs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No pending reviews
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      All jobs are up to date. Great work!
+                    </p>
+                  </div>
+                ) : (
+                  jobs.slice(0, 5).map((job: any) => (
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{job.jobNumber}</span>
+                          <Badge className={getStatusColor(job.status)}>
+                            {job.status.replace("_", " ")}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Surveyor: {job.surveyor?.user?.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Location: {job.location}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">
+                          {new Date(job.submittedAt).toLocaleDateString()}
+                        </p>
+                        <Link href={`/dashboard/jobs/${job.id}`}>
+                          <Button variant="outline" size="sm" className="mt-2">
+                            Review
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>
+                Common tasks for{" "}
+                {session.user.role === "NIS_OFFICER"
+                  ? "NIS officers"
+                  : "administrators"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Link
+                  href={
+                    session.user.role === "NIS_OFFICER"
+                      ? "/dashboard/review"
+                      : "/dashboard/admin-review"
+                  }
+                >
+                  <Button variant="outline" className="w-full justify-start">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Review Queue
+                  </Button>
+                </Link>
+                <Link href="/dashboard/users">
+                  <Button variant="outline" className="w-full justify-start">
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Manage Users
+                  </Button>
+                </Link>
+                <Link href="/search">
+                  <Button variant="outline" className="w-full justify-start">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Search Pillars
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* For non-surveyors or non-verified surveyors */}

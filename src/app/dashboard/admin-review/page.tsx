@@ -22,25 +22,26 @@ import {
   XCircle,
   Clock,
   Eye,
-  Download,
+  Hash,
 } from "lucide-react";
+import { AdminJobApproval } from "@/components/admin-job-approval";
 import { ApprovalButtons } from "@/components/approval-buttons";
 
-export default async function ReviewQueuePage() {
+export default async function AdminReviewPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/login");
   }
 
-  if (session.user.role !== "NIS_OFFICER") {
+  if (session.user.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
-  // Fetch jobs pending NIS review
+  // Fetch jobs pending admin review (approved by NIS)
   const pendingJobs = await prisma.surveyJob.findMany({
     where: {
-      OR: [{ status: "SUBMITTED" }, { status: "NIS_REVIEW" }],
+      status: "ADMIN_REVIEW",
     },
     include: {
       surveyor: {
@@ -60,10 +61,10 @@ export default async function ReviewQueuePage() {
     },
   });
 
-  // Fetch recently submitted jobs
-  const recentlySubmitted = await prisma.surveyJob.findMany({
+  // Fetch recently approved jobs
+  const recentlyApproved = await prisma.surveyJob.findMany({
     where: {
-      status: "SUBMITTED",
+      status: "COMPLETED",
     },
     include: {
       surveyor: {
@@ -72,33 +73,7 @@ export default async function ReviewQueuePage() {
         },
       },
       documents: true,
-      workflowSteps: true,
-    },
-    orderBy: {
-      submittedAt: "desc",
-    },
-    take: 5,
-  });
-
-  // Fetch recently reviewed jobs
-  const recentlyReviewed = await prisma.surveyJob.findMany({
-    where: {
-      OR: [{ status: "ADMIN_REVIEW" }, { status: "NIS_REJECTED" }],
-      workflowSteps: {
-        some: {
-          stepName: "NIS Review",
-          status: "COMPLETED",
-        },
-      },
-    },
-    include: {
-      surveyor: {
-        include: {
-          user: true,
-        },
-      },
-      documents: true,
-      workflowSteps: true,
+      pillarNumbers: true,
     },
     orderBy: {
       updatedAt: "desc",
@@ -106,26 +81,37 @@ export default async function ReviewQueuePage() {
     take: 10,
   });
 
+  // Fetch surveyors needing final approval
+  const pendingSurveyors = await prisma.surveyor.findMany({
+    where: {
+      status: "NIS_APPROVED",
+    },
+    include: {
+      user: true,
+    },
+    orderBy: {
+      verifiedAt: "asc",
+    },
+  });
+
   const stats = {
-    pendingReview: pendingJobs.length,
-    newSubmissions: recentlySubmitted.length,
-    reviewedToday: recentlyReviewed.filter(
+    pendingJobs: pendingJobs.length,
+    pendingSurveyors: pendingSurveyors.length,
+    approvedToday: recentlyApproved.filter(
       (job) =>
         new Date(job.updatedAt).toDateString() === new Date().toDateString()
     ).length,
-    totalReviewed: recentlyReviewed.length,
+    totalApproved: recentlyApproved.length,
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "NIS_REVIEW":
-        return "bg-yellow-100 text-yellow-800";
       case "ADMIN_REVIEW":
         return "bg-blue-100 text-blue-800";
-      case "NIS_REJECTED":
+      case "COMPLETED":
+        return "bg-green-100 text-green-800";
+      case "ADMIN_REJECTED":
         return "bg-red-100 text-red-800";
-      case "SUBMITTED":
-        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -210,11 +196,7 @@ export default async function ReviewQueuePage() {
                 Review
               </Button>
             </Link>
-            <ApprovalButtons
-              itemId={job.id}
-              itemType="job"
-              userRole="NIS_OFFICER"
-            />
+            <AdminJobApproval jobId={job.id} jobNumber={job.jobNumber} />
           </div>
         </div>
       </CardContent>
@@ -225,9 +207,11 @@ export default async function ReviewQueuePage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Review Queue</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Admin Review Center
+        </h1>
         <p className="text-gray-600 mt-2">
-          Review and approve survey job submissions
+          Final approval and pillar number issuance for survey jobs
         </p>
       </div>
 
@@ -235,15 +219,13 @@ export default async function ReviewQueuePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Review
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Jobs</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingReview}</div>
+            <div className="text-2xl font-bold">{stats.pendingJobs}</div>
             <p className="text-xs text-muted-foreground">
-              Awaiting your review
+              Ready for final approval
             </p>
           </CardContent>
         </Card>
@@ -251,58 +233,60 @@ export default async function ReviewQueuePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              New Submissions
+              Pending Surveyors
             </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.newSubmissions}</div>
-            <p className="text-xs text-muted-foreground">Recently submitted</p>
+            <div className="text-2xl font-bold">{stats.pendingSurveyors}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting final verification
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Reviewed Today
+              Approved Today
             </CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.reviewedToday}</div>
-            <p className="text-xs text-muted-foreground">Jobs reviewed today</p>
+            <div className="text-2xl font-bold">{stats.approvedToday}</div>
+            <p className="text-xs text-muted-foreground">Jobs approved today</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Reviewed
+              Pillars Issued
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalReviewed}</div>
+            <div className="text-2xl font-bold">{stats.totalApproved}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Review Tabs */}
-      <Tabs defaultValue="pending" className="space-y-6">
+      <Tabs defaultValue="jobs" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="pending">
-            Pending Review ({pendingJobs.length})
+          <TabsTrigger value="jobs">
+            Pending Jobs ({stats.pendingJobs})
           </TabsTrigger>
-          <TabsTrigger value="new">
-            New Submissions ({recentlySubmitted.length})
+          <TabsTrigger value="surveyors">
+            Pending Surveyors ({stats.pendingSurveyors})
           </TabsTrigger>
-          <TabsTrigger value="reviewed">
-            Recently Reviewed ({recentlyReviewed.length})
+          <TabsTrigger value="approved">
+            Recently Approved ({stats.totalApproved})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending" className="space-y-6">
+        <TabsContent value="jobs" className="space-y-6">
           {pendingJobs.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -311,7 +295,7 @@ export default async function ReviewQueuePage() {
                   All caught up!
                 </h3>
                 <p className="text-gray-600">
-                  No jobs pending your review at the moment.
+                  No jobs pending admin approval at the moment.
                 </p>
               </CardContent>
             </Card>
@@ -320,39 +304,112 @@ export default async function ReviewQueuePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="new" className="space-y-6">
-          {recentlySubmitted.length === 0 ? (
+        <TabsContent value="surveyors" className="space-y-6">
+          {pendingSurveyors.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No pending surveyors
+                </h3>
+                <p className="text-gray-600">
+                  All surveyor registrations are up to date.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {pendingSurveyors.map((surveyor) => (
+                <Card key={surveyor.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
+                            {surveyor.user.name}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-100 text-blue-800"
+                          >
+                            NIS Approved - Awaiting Final Approval
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {surveyor.user.email}
+                        </p>
+                        <div className="flex space-x-4 text-sm text-gray-500">
+                          <span>NIS: {surveyor.nisMembershipNumber}</span>
+                          <span>
+                            SURCON: {surveyor.surconRegistrationNumber}
+                          </span>
+                          <span>Firm: {surveyor.firmName}</span>
+                        </div>
+                      </div>
+                      <ApprovalButtons
+                        itemId={surveyor.id}
+                        itemType="surveyor"
+                        userRole="ADMIN"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="approved" className="space-y-6">
+          {recentlyApproved.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No new submissions
+                  No recent approvals
                 </h3>
                 <p className="text-gray-600">
-                  No recently submitted jobs to review.
+                  No recently approved jobs to display.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            recentlySubmitted.map((job) => <JobCard key={job.id} job={job} />)
-          )}
-        </TabsContent>
-
-        <TabsContent value="reviewed" className="space-y-6">
-          {recentlyReviewed.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No recent reviews
-                </h3>
-                <p className="text-gray-600">
-                  You haven&apos;t reviewed any jobs recently.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            recentlyReviewed.map((job) => <JobCard key={job.id} job={job} />)
+            <div className="space-y-4">
+              {recentlyApproved.map((job) => (
+                <Card key={job.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{job.jobNumber}</span>
+                          <Badge className="bg-green-100 text-green-800">
+                            Completed
+                          </Badge>
+                          {job.pillarNumbers[0] && (
+                            <Badge variant="outline">
+                              {job.pillarNumbers[0].pillarNumber}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Client: {job.clientName} | Surveyor:{" "}
+                          {job.surveyor.user.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Approved:{" "}
+                          {new Date(job.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Link href={`/dashboard/jobs/${job.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
       </Tabs>

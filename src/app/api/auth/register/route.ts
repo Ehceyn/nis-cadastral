@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
             firmName: validatedData.firmName,
             phoneNumber: validatedData.phoneNumber,
             address: validatedData.address,
-            status: "PENDING",
+            status: "PENDING_NIS_REVIEW",
           },
         },
       },
