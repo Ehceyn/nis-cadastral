@@ -92,7 +92,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
           libraries: ["places", "geometry"],
         });
 
-        const google = await loader.load();
+        const google = await loader.importLibrary("maps") as any;
 
         const map = new (google as any).maps.Map(mapRef.current!, {
           center: validCoordinates,
@@ -148,7 +148,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
         });
 
         // Add nearby pillars if available
-        nearbyPillars.forEach((nearbyPillar, index) => {
+        nearbyPillars.forEach((nearbyPillar) => {
           const nearbyCoords = validateCoordinates(nearbyPillar.coordinates);
           if (!nearbyCoords) return; // Skip invalid coordinates
 
