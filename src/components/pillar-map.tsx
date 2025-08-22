@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import {
   Card,
@@ -44,7 +44,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
   const [mapError, setMapError] = useState<string | null>(null);
 
   // Helper function to validate coordinates
-  const validateCoordinates = (coords: any) => {
+  const validateCoordinates = useCallback((coords: any) => {
     if (!coords || typeof coords !== "object") return null;
 
     const lat = Number(coords.latitude);
@@ -60,7 +60,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
     }
 
     return { lat, lng };
-  };
+  }, []);
 
   useEffect(() => {
     if (!pillar || !mapRef.current) return;
