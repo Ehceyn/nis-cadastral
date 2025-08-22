@@ -43,27 +43,27 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // Helper function to validate coordinates
+  const validateCoordinates = (coords: any) => {
+    if (!coords || typeof coords !== "object") return null;
+
+    const lat = Number(coords.latitude);
+    const lng = Number(coords.longitude);
+
+    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+      return null;
+    }
+
+    // Check if coordinates are within valid ranges
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+
+    return { lat, lng };
+  };
+
   useEffect(() => {
     if (!pillar || !mapRef.current) return;
-
-    // Validate and convert coordinates
-    const validateCoordinates = (coords: any) => {
-      if (!coords || typeof coords !== "object") return null;
-
-      const lat = Number(coords.latitude);
-      const lng = Number(coords.longitude);
-
-      if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-        return null;
-      }
-
-      // Check if coordinates are within valid ranges
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-        return null;
-      }
-
-      return { lat, lng };
-    };
 
     const validCoordinates = validateCoordinates(pillar.coordinates);
 
@@ -78,11 +78,16 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
         setIsLoading(true);
         setMapError(null);
 
-        // Note: In production, you'll need to add your Google Maps API key
-        // For now, we'll use a placeholder that shows the concept
+        // Check if API key is available
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          setMapError("Google Maps API key not configured");
+          setIsLoading(false);
+          return;
+        }
+
         const loader = new Loader({
-          apiKey:
-            process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE",
+          apiKey,
           version: "weekly",
           libraries: ["places", "geometry"],
         });
@@ -206,7 +211,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
     };
 
     initMap();
-  }, [pillar, nearbyPillars]);
+  }, [pillar, nearbyPillars, validateCoordinates]);
 
   const copyCoordinates = () => {
     if (pillar) {
@@ -245,24 +250,6 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
     }
   };
 
-  // Helper function to validate coordinates (moved outside useEffect for reuse)
-  const validateCoordinates = (coords: any) => {
-    if (!coords || typeof coords !== "object") return null;
-
-    const lat = Number(coords.latitude);
-    const lng = Number(coords.longitude);
-
-    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-      return null;
-    }
-
-    // Check if coordinates are within valid ranges
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return null;
-    }
-
-    return { lat, lng };
-  };
 
   if (!pillar) {
     return (

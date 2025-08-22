@@ -129,7 +129,7 @@ export default async function DashboardPage() {
       pendingReview: allJobs.filter((job) =>
         session.user.role === "NIS_OFFICER"
           ? job.status === "NIS_REVIEW" || job.status === "SUBMITTED"
-          : job.status === "ADMIN_REVIEW" || job.status === "NIS_APPROVED"
+          : job.status === "ADMIN_REVIEW" || job.status === "NIS_APPROVED" || job.status === "ADMIN_APPROVED"
       ).length,
       completedJobs: allJobs.filter(
         (job) => job.status === "COMPLETED" || job.status === "ADMIN_APPROVED"
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
       session.user.role === "NIS_OFFICER"
         ? ["SUBMITTED", "NIS_REVIEW"].includes(job.status)
         : session.user.role === "ADMIN"
-          ? ["ADMIN_REVIEW", "NIS_APPROVED"].includes(job.status)
+          ? ["ADMIN_REVIEW", "NIS_APPROVED", "ADMIN_APPROVED"].includes(job.status)
           : false
     ) as any;
   }
@@ -149,8 +149,9 @@ export default async function DashboardPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":
-      case "ADMIN_APPROVED":
         return "bg-green-100 text-green-800";
+      case "ADMIN_APPROVED":
+        return "bg-emerald-100 text-emerald-800";
       case "NIS_REVIEW":
       case "PENDING_NIS_REVIEW":
         return "bg-yellow-100 text-yellow-800";
