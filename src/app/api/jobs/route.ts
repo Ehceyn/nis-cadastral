@@ -168,21 +168,21 @@ export async function POST(request: NextRequest) {
         coordinates: validatedData.coordinates
           ? (validatedData.coordinates as Prisma.InputJsonValue)
           : Prisma.JsonNull,
+        // Store requested coordinates from the form
+        requestedCoordinates: validatedData.pillarCoordinates as Prisma.InputJsonValue,
         // Enhanced Survey Details Fields
         stampReference: validatedData.stampReference || null,
         totalAmount: validatedData.totalAmount || null,
-        planNumber: validatedData.planNumber || null,
+        // planNumber now assigned by admin during pillar issuance - not from form
         depositTellerNumber: validatedData.depositTellerNumber || null,
         depositAmount: validatedData.depositAmount || null,
         beaconTellerNumber: validatedData.beaconTellerNumber || null,
         beaconAmount: validatedData.beaconAmount || null,
         titleHolderName: validatedData.titleHolderName || null,
-        pillarNumbersRequired: validatedData.pillarNumbersRequired || null,
+        pillarNumbersRequired: validatedData.pillarCoordinates.length, // Use coordinate count
         cumulativePillarsQuarter:
           validatedData.cumulativePillarsQuarter || null,
         cumulativePillarsYear: validatedData.cumulativePillarsYear || null,
-        eastingCoordinates: validatedData.eastingCoordinates || null,
-        northingCoordinates: validatedData.northingCoordinates || null,
         areaSqm: validatedData.areaSqm || null,
         status: "NIS_REVIEW", // Start with NIS review
         userId: session.user.id,
@@ -214,6 +214,18 @@ export async function POST(request: NextRequest) {
             },
             {
               stepName: "Pillar Number Assignment",
+              status: "PENDING",
+            },
+            {
+              stepName: "Blue Copy Upload",
+              status: "PENDING",
+            },
+            {
+              stepName: "R of O Document Upload",
+              status: "PENDING",
+            },
+            {
+              stepName: "Completed",
               status: "PENDING",
             },
           ],

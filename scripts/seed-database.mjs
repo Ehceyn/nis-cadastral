@@ -14,6 +14,7 @@ async function main() {
     await prisma.surveyJob.deleteMany()
     await prisma.surveyor.deleteMany()
     await prisma.user.deleteMany()
+    await prisma.pillarSystem.deleteMany()
 
     // Create Users and Surveyors
     console.log("👥 Creating users and surveyors...")
@@ -121,6 +122,16 @@ async function main() {
 
     console.log(`✅ Created ${users.length} users`)
 
+    // Initialize Pillar System
+    console.log("⚙️ Initializing pillar system...")
+    const pillarSystem = await prisma.pillarSystem.create({
+      data: {
+        seriesPrefix: "SC/CN",
+        lastIssuedNumber: 3565, // Starting from a realistic number
+      },
+    })
+    console.log(`✅ Initialized pillar system with prefix: ${pillarSystem.seriesPrefix}`)
+
     // Get verified surveyors for creating jobs
     const verifiedSurveyors = users.filter((user) => user.surveyor && user.surveyor.status === "VERIFIED")
 
@@ -142,9 +153,20 @@ async function main() {
           latitude: 4.8156,
           longitude: 7.0498,
         },
+        requestedCoordinates: [
+          { easting: "288456.789", northing: "532123.456" },
+          { easting: "288478.912", northing: "532145.678" },
+        ],
+        planNumber: "PH/GRA/2024/001",
+        pillarNumbersRequired: 2,
+        blueCopyUploaded: true,
+        blueCopyUploadedAt: new Date("2024-01-23T10:30:00Z"),
+        roDocumentUploaded: true,
+        roDocumentUploadedAt: new Date("2024-01-25T14:15:00Z"),
         status: "COMPLETED",
         submittedAt: new Date("2024-01-10T09:30:00Z"),
         updatedAt: new Date("2024-01-25T16:45:00Z"),
+        dateApproved: new Date("2024-01-22T11:30:00Z"),
         userId: verifiedSurveyors[0].id,
         surveyorId: verifiedSurveyors[0].surveyor.id,
       },
@@ -164,6 +186,12 @@ async function main() {
           latitude: 4.7892,
           longitude: 7.0156,
         },
+        requestedCoordinates: [
+          { easting: "287234.567", northing: "530456.789" },
+          { easting: "287256.789", northing: "530478.123" },
+          { easting: "287278.123", northing: "530499.456" },
+        ],
+        pillarNumbersRequired: 3,
         status: "NIS_REVIEW",
         submittedAt: new Date("2024-01-15T14:20:00Z"),
         updatedAt: new Date("2024-01-16T10:15:00Z"),
@@ -186,6 +214,10 @@ async function main() {
           latitude: 4.8445,
           longitude: 7.0234,
         },
+        requestedCoordinates: [
+          { easting: "288789.123", northing: "532789.456" },
+        ],
+        pillarNumbersRequired: 1,
         status: "ADMIN_REVIEW",
         submittedAt: new Date("2024-01-08T11:45:00Z"),
         updatedAt: new Date("2024-01-20T09:30:00Z"),
@@ -207,6 +239,11 @@ async function main() {
           latitude: 4.8012,
           longitude: 7.0567,
         },
+        requestedCoordinates: [
+          { easting: "288567.234", northing: "531234.567" },
+          { easting: "288589.456", northing: "531256.789" },
+        ],
+        pillarNumbersRequired: 2,
         status: "SUBMITTED",
         submittedAt: new Date("2024-01-22T16:30:00Z"),
         userId: verifiedSurveyors[0].id,
@@ -224,6 +261,13 @@ async function main() {
         clientPhone: "+234 809 876 5432",
         location: "Plot 45-50, Rumuokwuta, Port Harcourt, Rivers State",
         description: "Survey for housing estate development",
+        requestedCoordinates: [
+          { easting: "286789.123", northing: "529456.789" },
+          { easting: "286811.456", northing: "529478.123" },
+          { easting: "286833.789", northing: "529499.456" },
+          { easting: "286856.123", northing: "529521.789" },
+        ],
+        pillarNumbersRequired: 4,
         status: "NIS_REJECTED",
         submittedAt: new Date("2024-01-05T13:15:00Z"),
         updatedAt: new Date("2024-01-12T11:20:00Z"),
@@ -269,6 +313,26 @@ async function main() {
           fileSize: 3789456,
           mimeType: "application/pdf",
           documentType: "SURVEY_REPORT",
+          surveyJobId: job1.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "blue_copy_okonkwo.pdf",
+          filePath: "https://example.com/docs/blue_copy_okonkwo.pdf",
+          fileSize: 1234567,
+          mimeType: "application/pdf",
+          documentType: "BLUE_COPY",
+          surveyJobId: job1.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "ro_document_okonkwo.pdf",
+          filePath: "https://example.com/docs/ro_document_okonkwo.pdf",
+          fileSize: 987654,
+          mimeType: "application/pdf",
+          documentType: "RO_DOCUMENT",
           surveyJobId: job1.id,
         },
       }),
@@ -380,8 +444,35 @@ async function main() {
         data: {
           stepName: "Pillar Number Assignment",
           status: "COMPLETED",
+          completedAt: new Date("2024-01-22T16:45:00Z"),
+          notes: "2 pillar numbers assigned: SC/CN 3566, SC/CN 3567. Plan number: PH/GRA/2024/001",
+          surveyJobId: job1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2024-01-23T10:30:00Z"),
+          notes: "Blue Copy uploaded: blue_copy_okonkwo.pdf",
+          surveyJobId: job1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2024-01-25T14:15:00Z"),
+          notes: "R of O document uploaded: ro_document_okonkwo.pdf",
+          surveyJobId: job1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
+          status: "COMPLETED",
           completedAt: new Date("2024-01-25T16:45:00Z"),
-          notes: "Pillar number PIL-2024-001 assigned",
+          notes: "Job completed successfully - all requirements fulfilled.",
           surveyJobId: job1.id,
         },
       }),
@@ -417,6 +508,27 @@ async function main() {
       prisma.workflowStep.create({
         data: {
           stepName: "Pillar Number Assignment",
+          status: "PENDING",
+          surveyJobId: job2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "PENDING",
+          surveyJobId: job2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "PENDING",
+          surveyJobId: job2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
           status: "PENDING",
           surveyJobId: job2.id,
         },
@@ -459,6 +571,27 @@ async function main() {
           surveyJobId: job3.id,
         },
       }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "PENDING",
+          surveyJobId: job3.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "PENDING",
+          surveyJobId: job3.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
+          status: "PENDING",
+          surveyJobId: job3.id,
+        },
+      }),
     ])
     workflowSteps.push(...job3Workflow)
 
@@ -490,6 +623,27 @@ async function main() {
       prisma.workflowStep.create({
         data: {
           stepName: "Pillar Number Assignment",
+          status: "PENDING",
+          surveyJobId: job4.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "PENDING",
+          surveyJobId: job4.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "PENDING",
+          surveyJobId: job4.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
           status: "PENDING",
           surveyJobId: job4.id,
         },
@@ -531,6 +685,27 @@ async function main() {
           surveyJobId: job5.id,
         },
       }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "PENDING",
+          surveyJobId: job5.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "PENDING",
+          surveyJobId: job5.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
+          status: "PENDING",
+          surveyJobId: job5.id,
+        },
+      }),
     ])
     workflowSteps.push(...job5Workflow)
 
@@ -540,14 +715,21 @@ async function main() {
     console.log("📍 Creating pillar numbers...")
 
     const pillarNumbers = await Promise.all([
+      // Pillars for Job 1 (Completed) - mapped to coordinates
       prisma.pillarNumber.create({
         data: {
-          pillarNumber: "PIL-2024-001",
-          coordinates: {
-            lat: 4.8156,
-            lng: 7.0498,
-          },
-          issuedDate: new Date("2024-01-25T16:45:00Z"),
+          pillarNumber: "SC/CN 3566",
+          coordinates: { easting: "288456.789", northing: "532123.456" },
+          issuedDate: new Date("2024-01-22T16:45:00Z"),
+          surveyJobId: job1.id,
+          surveyorId: verifiedSurveyors[0].surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CN 3567",
+          coordinates: { easting: "288478.912", northing: "532145.678" },
+          issuedDate: new Date("2024-01-22T16:45:00Z"),
           surveyJobId: job1.id,
           surveyorId: verifiedSurveyors[0].surveyor.id,
         },
@@ -565,6 +747,7 @@ async function main() {
     console.log(`   📄 Documents: ${documents.length}`)
     console.log(`   🔄 Workflow Steps: ${workflowSteps.length}`)
     console.log(`   📍 Pillar Numbers: ${pillarNumbers.length}`)
+    console.log(`   ⚙️ Pillar System: ${pillarSystem.seriesPrefix} (Last: ${pillarSystem.lastIssuedNumber})`)
 
     console.log("\n🔐 Test Accounts:")
     console.log("   Surveyors:")

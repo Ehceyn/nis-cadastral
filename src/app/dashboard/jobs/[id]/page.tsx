@@ -15,6 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { DocumentsSection } from "./components/documents-section";
 import { ApprovalButtons } from "@/components/approval-buttons";
 import { AdminJobApproval } from "@/components/admin-job-approval";
+import { BlueCopyUpload } from "@/components/blue-copy-upload";
+import { RoDocumentUpload } from "@/components/ro-document-upload";
+import { CoordinateMap } from "@/components/coordinate-map";
 import {
   ArrowLeft,
   FileText,
@@ -198,15 +201,29 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                   <p className="text-gray-900 mt-1">{job.description}</p>
                 </div>
               )}
-              {job.coordinates && (
+              {job.requestedCoordinates && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Coordinates
+                    Requested Pillar Coordinates (UTM Zone 32N)
                   </label>
-                  <p className="text-gray-900 mt-1">
-                    Lat: {(job.coordinates as any).latitude}, Lng:{" "}
-                    {(job.coordinates as any).longitude}
-                  </p>
+                  <div className="mt-2 space-y-2">
+                    {(job.requestedCoordinates as Array<{ easting: string; northing: string }>).map((coord, index) => (
+                      <div key={index} className="p-2 bg-gray-50 rounded border">
+                        <span className="text-sm font-medium">Coordinate {index + 1}:</span>
+                        <span className="text-sm ml-2">
+                          E: {coord.easting}, N: {coord.northing}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Map visualization */}
+                  <div className="mt-4">
+                    <CoordinateMap
+                      coordinates={job.requestedCoordinates as Array<{ easting: string; northing: string }>}
+                      height="300px"
+                    />
+                  </div>
                 </div>
               )}
               <div className="grid md:grid-cols-2 gap-4">
@@ -238,6 +255,11 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
             <Card>
               <CardHeader>
                 <CardTitle>Assigned Pillar Numbers</CardTitle>
+                {job.planNumber && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Plan Number: <span className="font-medium">{job.planNumber}</span>
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -254,6 +276,11 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                           Issued:{" "}
                           {new Date(pillar.issuedDate).toLocaleDateString()}
                         </p>
+                        {pillar.coordinates && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            E: {(pillar.coordinates as any).easting}, N: {(pillar.coordinates as any).northing}
+                          </p>
+                        )}
                       </div>
                       <Link href={`/search?q=${pillar.pillarNumber}`}>
                         <Button variant="outline" size="sm">
@@ -402,6 +429,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       <AdminJobApproval
                         jobId={job.id}
                         jobNumber={job.jobNumber}
+                        requestedCoordinates={job.requestedCoordinates as Array<{ easting: string; northing: string }> || []}
                       />
                     </div>
                   ) : (
@@ -419,6 +447,24 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Blue Copy Upload - Available for Surveyors after pillar numbers are issued */}
+          <BlueCopyUpload
+            jobId={job.id}
+            jobNumber={job.jobNumber}
+            isEnabled={job.pillarNumbers.length > 0}
+            isUploaded={job.blueCopyUploaded || false}
+            userRole={session.user.role}
+          />
+
+          {/* R of O Document Upload - Available for Admins after Blue Copy is uploaded */}
+          <RoDocumentUpload
+            jobId={job.id}
+            jobNumber={job.jobNumber}
+            isEnabled={job.blueCopyUploaded || false}
+            isUploaded={job.roDocumentUploaded || false}
+            userRole={session.user.role}
+          />
         </div>
       </div>
     </div>

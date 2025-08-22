@@ -60,7 +60,7 @@ model SurveyJob {
   // Enhanced Survey Details Fields
   stampReference            String?
   totalAmount               String?
-  planNumber                String?
+  planNumber                String? // Now assigned by admin during pillar issuance
   depositTellerNumber       String?
   depositAmount             String?
   beaconTellerNumber        String?
@@ -69,10 +69,15 @@ model SurveyJob {
   pillarNumbersRequired     Int?
   cumulativePillarsQuarter  Int?
   cumulativePillarsYear     Int?
-  eastingCoordinates        String?
-  northingCoordinates       String?
+  requestedCoordinates      Json? // Array of coordinate objects from request form
   areaSqm                   String?
   dateApproved              DateTime?
+  
+  // Blue Copy and R of O workflow fields
+  blueCopyUploaded          Boolean   @default(false)
+  blueCopyUploadedAt        DateTime?
+  roDocumentUploaded        Boolean   @default(false)
+  roDocumentUploadedAt      DateTime?
   
   surveyorId   String
   surveyor     Surveyor  @relation(fields: [surveyorId], references: [id])
@@ -88,7 +93,7 @@ model SurveyJob {
 model PillarNumber {
   id           String   @id @default(cuid())
   pillarNumber String   @unique
-  coordinates  Json
+  coordinates  Json     // Individual coordinate object mapped to this pillar
   issuedDate   DateTime @default(now())
   
   surveyJobId  String
@@ -97,6 +102,16 @@ model PillarNumber {
   surveyor     Surveyor  @relation(fields: [surveyorId], references: [id])
   
   @@map("pillar_numbers")
+}
+
+model PillarSystem {
+  id                String   @id @default(cuid())
+  seriesPrefix      String   @default("SC/CN") // Configurable prefix like SC/CN, SC/BN, etc.
+  lastIssuedNumber  Int      @default(0)       // Last issued sequential number
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("pillar_system")
 }
 
 model Document {
@@ -166,6 +181,8 @@ enum DocumentType {
   KML_FILE
   DXF_FILE
   DWG_FILE
+  BLUE_COPY
+  RO_DOCUMENT
   OTHER
 }
 

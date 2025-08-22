@@ -20,43 +20,62 @@ import { toast } from "sonner";
 interface AdminJobApprovalProps {
   jobId: string;
   jobNumber: string;
+  requestedCoordinates?: Array<{ easting: string; northing: string }>;
   onSuccess?: () => void;
 }
 
 export function AdminJobApproval({
   jobId,
   jobNumber,
+  requestedCoordinates,
   onSuccess,
 }: AdminJobApprovalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
-  const [pillarNumber, setPillarNumber] = useState("");
+  const [pillarNumbers, setPillarNumbers] = useState<string[]>([]);
+  const [planNumber, setPlanNumber] = useState("");
+  const [seriesPrefix, setSeriesPrefix] = useState("SC/CN");
   const [comments, setComments] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [coordinateCount, setCoordinateCount] = useState(requestedCoordinates?.length || 1);
 
-  const generatePillarNumber = async () => {
+  const generatePillarNumbers = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/pillars/generate");
+      const response = await fetch("/api/pillars/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          count: coordinateCount,
+          seriesPrefix
+        }),
+      });
       const data = await response.json();
 
       if (response.ok) {
-        setPillarNumber(data.pillarNumber);
-        toast.success("Pillar number generated!");
+        setPillarNumbers(data.pillarNumbers);
+        toast.success(`${coordinateCount} pillar numbers generated!`);
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
-      toast.error("Failed to generate pillar number");
+      toast.error("Failed to generate pillar numbers");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleApprove = async () => {
-    if (!pillarNumber.trim()) {
-      toast.error("Pillar number is required for approval");
+    if (pillarNumbers.length !== coordinateCount) {
+      toast.error("Please generate pillar numbers for all coordinates");
+      return;
+    }
+
+    if (!planNumber.trim()) {
+      toast.error("Plan number is required for approval");
       return;
     }
 
@@ -69,10 +88,12 @@ export function AdminJobApproval({
         },
         body: JSON.stringify({
           jobId,
-          pillarNumber: pillarNumber.trim(),
+          pillarNumbers,
+          planNumber: planNumber.trim(),
+          requestedCoordinates,
           comments:
             comments.trim() ||
-            `Job ${jobNumber} approved with pillar number ${pillarNumber}`,
+            `Job ${jobNumber} approved with ${pillarNumbers.length} pillar numbers and plan number ${planNumber}`,
         }),
       });
 
@@ -82,7 +103,7 @@ export function AdminJobApproval({
         throw new Error(data.error || "Failed to approve job");
       }
 
-      toast.success(data.message || "Job approved and pillar number issued!");
+      toast.success(data.message || "Job approved and pillar numbers issued!");
       setIsOpen(false);
       if (onSuccess) onSuccess();
 
@@ -159,31 +180,66 @@ export function AdminJobApproval({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="pillarNumber">Pillar Number *</Label>
+              <Label htmlFor="seriesPrefix">Series Prefix *</Label>
+              <Input
+                id="seriesPrefix"
+                placeholder="SC/CN"
+                value={seriesPrefix}
+                onChange={(e) => setSeriesPrefix(e.target.value)}
+              />
+              <p className="text-sm text-gray-500">
+                Configure the pillar number prefix (e.g., SC/CN, SC/BN)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="planNumber">Plan Number *</Label>
+              <Input
+                id="planNumber"
+                placeholder="Enter plan number"
+                value={planNumber}
+                onChange={(e) => setPlanNumber(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Pillar Numbers ({coordinateCount} needed) *</Label>
               <div className="flex space-x-2">
-                <Input
-                  id="pillarNumber"
-                  placeholder="PIL-2025-001"
-                  value={pillarNumber}
-                  onChange={(e) => setPillarNumber(e.target.value)}
-                  className="flex-1"
-                />
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  onClick={generatePillarNumber}
+                  onClick={generatePillarNumbers}
                   disabled={isGenerating}
                 >
                   {isGenerating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
-                    <Hash className="h-4 w-4" />
+                    <Hash className="h-4 w-4 mr-2" />
                   )}
+                  Generate {coordinateCount} Pillar Numbers
                 </Button>
               </div>
+              
+              {pillarNumbers.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <h5 className="font-medium text-sm">Generated Pillar Numbers:</h5>
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                    {pillarNumbers.map((number, index) => (
+                      <div key={index} className="p-2 bg-green-50 border rounded text-sm">
+                        <span className="font-mono">{number}</span>
+                        {requestedCoordinates && requestedCoordinates[index] && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            E: {requestedCoordinates[index].easting}, N: {requestedCoordinates[index].northing}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <p className="text-sm text-gray-500">
-                Click the # button to auto-generate next pillar number
+                Click to auto-generate consecutive pillar numbers for all coordinates
               </p>
             </div>
             <div className="space-y-2">
@@ -208,7 +264,7 @@ export function AdminJobApproval({
             <Button
               type="button"
               onClick={handleApprove}
-              disabled={isApproving || !pillarNumber.trim()}
+              disabled={isApproving || pillarNumbers.length !== coordinateCount || !planNumber.trim()}
               className="bg-green-600 hover:bg-green-700"
             >
               {isApproving ? (

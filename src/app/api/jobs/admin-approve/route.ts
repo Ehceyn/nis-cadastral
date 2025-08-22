@@ -3,32 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// Generate next pillar number
-async function generatePillarNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-
-  // Get the latest pillar number for this year
-  const latestPillar = await prisma.pillarNumber.findFirst({
-    where: {
-      pillarNumber: {
-        startsWith: `PIL-${year}-`,
-      },
-    },
-    orderBy: {
-      pillarNumber: "desc",
-    },
-  });
-
-  let sequence = 1;
-  if (latestPillar) {
-    const match = latestPillar.pillarNumber.match(/PIL-\d{4}-(\d+)/);
-    if (match) {
-      sequence = parseInt(match[1]) + 1;
-    }
-  }
-
-  return `PIL-${year}-${sequence.toString().padStart(3, "0")}`;
-}
 
 // Admin Approve Job with Pillar Number Issuance
 export async function POST(request: NextRequest) {
@@ -39,11 +13,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { jobId, pillarNumber, comments, coordinates } = await request.json();
+    const { jobId, pillarNumbers, planNumber, requestedCoordinates, comments } = await request.json();
 
     if (!jobId) {
       return NextResponse.json(
         { error: "Job ID is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!pillarNumbers || !Array.isArray(pillarNumbers) || pillarNumbers.length === 0) {
+      return NextResponse.json(
+        { error: "Pillar numbers are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!planNumber) {
+      return NextResponse.json(
+        { error: "Plan number is required" },
         { status: 400 }
       );
     }
@@ -69,18 +57,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate pillar number if not provided
-    const finalPillarNumber = pillarNumber || (await generatePillarNumber());
-
-    // Check if pillar number already exists
-    const existingPillar = await prisma.pillarNumber.findUnique({
-      where: { pillarNumber: finalPillarNumber },
+    // Check if any pillar numbers already exist
+    const existingPillars = await prisma.pillarNumber.findMany({
+      where: {
+        pillarNumber: {
+          in: pillarNumbers,
+        },
+      },
     });
 
-    if (existingPillar) {
+    if (existingPillars.length > 0) {
       return NextResponse.json(
         {
-          error: "Pillar number already exists",
+          error: `Pillar number(s) already exist: ${existingPillars.map(p => p.pillarNumber).join(', ')}`,
         },
         { status: 400 }
       );
@@ -88,11 +77,12 @@ export async function POST(request: NextRequest) {
 
     // Start transaction for atomic operations
     const result = await prisma.$transaction(async (tx) => {
-      // Update job status to COMPLETED
+      // Update job status to ADMIN_APPROVED (not COMPLETED yet - awaits Blue Copy workflow)
       const updatedJob = await tx.surveyJob.update({
         where: { id: jobId },
         data: {
-          status: "COMPLETED",
+          status: "ADMIN_APPROVED",
+          planNumber: planNumber,
           updatedAt: new Date(),
           dateApproved: new Date(),
         },
@@ -103,16 +93,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create pillar number record
-      const pillar = await tx.pillarNumber.create({
-        data: {
-          pillarNumber: finalPillarNumber,
-          coordinates: coordinates || job.coordinates || {},
-          surveyJobId: jobId,
-          surveyorId: job.surveyorId,
-          issuedDate: new Date(),
-        },
-      });
+      // Create pillar number records mapped to coordinates
+      const pillars = await Promise.all(
+        pillarNumbers.map((pillarNumber: string, index: number) =>
+          tx.pillarNumber.create({
+            data: {
+              pillarNumber,
+              coordinates: requestedCoordinates?.[index] || {},
+              surveyJobId: jobId,
+              surveyorId: job.surveyorId,
+              issuedDate: new Date(),
+            },
+          })
+        )
+      );
 
       // Update Admin Review workflow step
       await tx.workflowStep.updateMany({
@@ -136,23 +130,36 @@ export async function POST(request: NextRequest) {
         data: {
           status: "COMPLETED",
           completedAt: new Date(),
-          notes: `Pillar number ${finalPillarNumber} assigned`,
+          notes: `${pillarNumbers.length} pillar numbers assigned: ${pillarNumbers.join(', ')}`,
         },
       });
 
-      return { updatedJob, pillar };
+      // Activate Blue Copy Upload workflow step
+      await tx.workflowStep.updateMany({
+        where: {
+          surveyJobId: jobId,
+          stepName: "Blue Copy Upload",
+        },
+        data: {
+          status: "IN_PROGRESS",
+          notes: "Pillar numbers issued. Blue copy upload now available.",
+        },
+      });
+
+      return { updatedJob, pillars };
     });
 
     // TODO: Send email notification to surveyor about job completion and pillar number
 
     return NextResponse.json({
       success: true,
-      message: "Job approved and pillar number issued successfully.",
+      message: `Job approved and ${pillarNumbers.length} pillar numbers issued successfully.`,
       job: {
         id: result.updatedJob.id,
         jobNumber: result.updatedJob.jobNumber,
         status: result.updatedJob.status,
-        pillarNumber: result.pillar.pillarNumber,
+        planNumber: result.updatedJob.planNumber,
+        pillarNumbers: result.pillars.map(p => p.pillarNumber),
       },
     });
   } catch (error) {

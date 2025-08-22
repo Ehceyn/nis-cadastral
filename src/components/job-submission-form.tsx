@@ -3,7 +3,7 @@
 import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileText, MapPin, User, Phone, Mail } from "lucide-react";
+import { Upload, X, FileText, MapPin, User, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { surveyJobSchema } from "@/lib/validations";
+import { CoordinateMap } from "@/components/coordinate-map";
 
 type JobSubmissionData = z.infer<typeof surveyJobSchema>;
 
@@ -49,16 +50,19 @@ export function JobSubmissionForm() {
       description: "",
       stampReference: "",
       totalAmount: "",
-      planNumber: "",
       depositTellerNumber: "",
       depositAmount: "",
       beaconTellerNumber: "",
       beaconAmount: "",
       titleHolderName: "",
-      eastingCoordinates: "",
-      northingCoordinates: "",
       areaSqm: "",
+      pillarCoordinates: [{ easting: "", northing: "" }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "pillarCoordinates",
   });
 
   const acceptedFileTypes = {
@@ -199,6 +203,7 @@ export function JobSubmissionForm() {
         cumulativePillarsYear: data.cumulativePillarsYear
           ? Number(data.cumulativePillarsYear)
           : undefined,
+        requestedCoordinates: data.pillarCoordinates,
         documents: documentUrls,
       };
 
@@ -346,14 +351,6 @@ export function JobSubmissionForm() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="planNumber">Plan Number</Label>
-                <Input
-                  id="planNumber"
-                  {...form.register("planNumber")}
-                  placeholder="Survey plan number"
-                />
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="areaSqm">Area (Square Meters)</Label>
@@ -377,38 +374,98 @@ export function JobSubmissionForm() {
           </CardContent>
         </Card>
 
-        {/* Coordinates section */}
+        {/* Pillar Coordinates section */}
         <Card>
           <CardHeader>
-            <CardTitle>Coordinates</CardTitle>
+            <CardTitle>Pillar Coordinates (UTM Zone 32N)</CardTitle>
             <CardDescription>
-              Property coordinates and pillar information
+              Enter the coordinates for each pillar you are requesting
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {fields.map((field, index) => (
+              <div key={field.id} className="space-y-4 p-4 border rounded-lg relative">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Coordinate {index + 1}</h4>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`pillarCoordinates.${index}.easting`}>
+                      Easting
+                    </Label>
+                    <Input
+                      {...form.register(`pillarCoordinates.${index}.easting`)}
+                      placeholder="Enter easting coordinate"
+                    />
+                    {form.formState.errors.pillarCoordinates?.[index]?.easting && (
+                      <p className="text-sm text-red-600">
+                        {form.formState.errors.pillarCoordinates[index]?.easting?.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`pillarCoordinates.${index}.northing`}>
+                      Northing
+                    </Label>
+                    <Input
+                      {...form.register(`pillarCoordinates.${index}.northing`)}
+                      placeholder="Enter northing coordinate"
+                    />
+                    {form.formState.errors.pillarCoordinates?.[index]?.northing && (
+                      <p className="text-sm text-red-600">
+                        {form.formState.errors.pillarCoordinates[index]?.northing?.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => append({ easting: "", northing: "" })}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Coordinate
+            </Button>
+            
+            {form.formState.errors.pillarCoordinates?.root && (
+              <p className="text-sm text-red-600">
+                {form.formState.errors.pillarCoordinates.root.message}
+              </p>
+            )}
+            
+            {/* Map Preview */}
+            {fields.some((_, index) => form.watch(`pillarCoordinates.${index}.easting`) && form.watch(`pillarCoordinates.${index}.northing`)) && (
               <div className="space-y-2">
-                <Label htmlFor="eastingCoordinates">Easting Coordinates</Label>
-                <Input
-                  id="eastingCoordinates"
-                  {...form.register("eastingCoordinates")}
-                  placeholder="Easting value"
+                <h4 className="font-medium text-sm">Coordinate Preview Map (UTM Zone 32N)</h4>
+                <CoordinateMap
+                  coordinates={fields.map((_, index) => ({
+                    easting: form.watch(`pillarCoordinates.${index}.easting`) || "",
+                    northing: form.watch(`pillarCoordinates.${index}.northing`) || "",
+                  })).filter(coord => coord.easting && coord.northing)}
+                  height="250px"
                 />
               </div>
-
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div className="space-y-2">
-                <Label htmlFor="northingCoordinates">
-                  Northing Coordinates
-                </Label>
-                <Input
-                  id="northingCoordinates"
-                  {...form.register("northingCoordinates")}
-                  placeholder="Northing value"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="pillarNumbersRequired">Pillars Required</Label>
+                <Label htmlFor="pillarNumbersRequired">Total Pillars Requested</Label>
                 <Input
                   id="pillarNumbersRequired"
                   type="number"
@@ -416,6 +473,8 @@ export function JobSubmissionForm() {
                     valueAsNumber: true,
                   })}
                   placeholder="Number of pillars needed"
+                  value={fields.length}
+                  readOnly
                 />
               </div>
 

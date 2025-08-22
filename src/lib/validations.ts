@@ -6,6 +6,11 @@ const optionalString = z
   .transform((val) => (val === "" ? undefined : val))
   .optional();
 
+export const coordinateSchema = z.object({
+  easting: z.string().min(1, "Easting coordinate is required"),
+  northing: z.string().min(1, "Northing coordinate is required"),
+});
+
 export const surveyJobSchema = z.object({
   clientName: z.string().min(2, "Client name is required"),
   clientEmail: z
@@ -22,10 +27,12 @@ export const surveyJobSchema = z.object({
       longitude: z.number().min(-180).max(180),
     })
     .optional(),
+  // Pillar coordinates - array of coordinate pairs
+  pillarCoordinates: z.array(coordinateSchema).min(1, "At least one coordinate is required"),
   // Enhanced Survey Details Fields
   stampReference: optionalString,
   totalAmount: optionalString,
-  planNumber: optionalString,
+  // planNumber removed from request form - now assigned by admin
   depositTellerNumber: optionalString,
   depositAmount: optionalString,
   beaconTellerNumber: optionalString,
@@ -34,8 +41,6 @@ export const surveyJobSchema = z.object({
   pillarNumbersRequired: z.number().optional(),
   cumulativePillarsQuarter: z.number().optional(),
   cumulativePillarsYear: z.number().optional(),
-  eastingCoordinates: optionalString,
-  northingCoordinates: optionalString,
   areaSqm: optionalString,
 });
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// Generate next available pillar number
+// Generate next available pillar number(s)
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -12,34 +12,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const year = new Date().getFullYear();
-
-    // Get the latest pillar number for this year
-    const latestPillar = await prisma.pillarNumber.findFirst({
-      where: {
-        pillarNumber: {
-          startsWith: `PIL-${year}-`,
+    // Get or create pillar system configuration
+    let pillarSystem = await prisma.pillarSystem.findFirst();
+    if (!pillarSystem) {
+      pillarSystem = await prisma.pillarSystem.create({
+        data: {
+          seriesPrefix: "SC/CN",
+          lastIssuedNumber: 0,
         },
-      },
-      orderBy: {
-        pillarNumber: "desc",
-      },
-    });
-
-    let sequence = 1;
-    if (latestPillar) {
-      const match = latestPillar.pillarNumber.match(/PIL-\d{4}-(\d+)/);
-      if (match) {
-        sequence = parseInt(match[1]) + 1;
-      }
+      });
     }
 
-    const nextPillarNumber = `PIL-${year}-${sequence.toString().padStart(3, "0")}`;
+    const nextNumber = pillarSystem.lastIssuedNumber + 1;
+    const pillarNumber = `${pillarSystem.seriesPrefix} ${nextNumber}`;
 
     return NextResponse.json({
-      pillarNumber: nextPillarNumber,
-      sequence,
-      year,
+      pillarNumber,
+      nextNumber,
+      seriesPrefix: pillarSystem.seriesPrefix,
     });
   } catch (error) {
     console.error("Pillar number generation error:", error);
@@ -50,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Validate pillar number availability
+// Generate multiple pillar numbers
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -59,29 +49,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { pillarNumber } = await request.json();
+    const { count = 1, seriesPrefix } = await request.json();
 
-    if (!pillarNumber) {
+    if (count < 1 || count > 50) {
       return NextResponse.json(
-        { error: "Pillar number is required" },
+        { error: "Count must be between 1 and 50" },
         { status: 400 }
       );
     }
 
-    // Check if pillar number already exists
-    const existingPillar = await prisma.pillarNumber.findUnique({
-      where: { pillarNumber },
+    // Get or create pillar system configuration
+    let pillarSystem = await prisma.pillarSystem.findFirst();
+    if (!pillarSystem) {
+      pillarSystem = await prisma.pillarSystem.create({
+        data: {
+          seriesPrefix: seriesPrefix || "SC/CN",
+          lastIssuedNumber: 0,
+        },
+      });
+    }
+
+    // Update series prefix if provided
+    if (seriesPrefix && seriesPrefix !== pillarSystem.seriesPrefix) {
+      pillarSystem = await prisma.pillarSystem.update({
+        where: { id: pillarSystem.id },
+        data: { seriesPrefix },
+      });
+    }
+
+    // Generate consecutive pillar numbers
+    const pillarNumbers = [];
+    const startNumber = pillarSystem.lastIssuedNumber + 1;
+    
+    for (let i = 0; i < count; i++) {
+      const number = startNumber + i;
+      pillarNumbers.push(`${pillarSystem.seriesPrefix} ${number}`);
+    }
+
+    // Update the last issued number
+    await prisma.pillarSystem.update({
+      where: { id: pillarSystem.id },
+      data: {
+        lastIssuedNumber: startNumber + count - 1,
+      },
     });
 
     return NextResponse.json({
-      available: !existingPillar,
-      pillarNumber,
-      exists: !!existingPillar,
+      pillarNumbers,
+      count,
+      seriesPrefix: pillarSystem.seriesPrefix,
+      startNumber,
+      endNumber: startNumber + count - 1,
     });
   } catch (error) {
-    console.error("Pillar number validation error:", error);
+    console.error("Pillar numbers generation error:", error);
     return NextResponse.json(
-      { error: "Failed to validate pillar number" },
+      { error: "Failed to generate pillar numbers" },
       { status: 500 }
     );
   }
