@@ -17,7 +17,12 @@ import { toast } from "sonner";
 interface PillarMapProps {
   pillar: {
     pillarNumber: string;
-    coordinates: { latitude: number; longitude: number };
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      easting: string;
+      northing: string;
+    };
     issuedDate: string;
     surveyor: {
       name: string;
@@ -32,7 +37,12 @@ interface PillarMapProps {
   } | null;
   nearbyPillars?: Array<{
     pillarNumber: string;
-    coordinates: { latitude: number; longitude: number };
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      easting: string;
+      northing: string;
+    };
     distance?: number;
   }>;
 }
@@ -59,7 +69,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
       return null;
     }
 
-    return { lat, lng };
+    return { lat, lng, easting: coords.easting, northing: coords.northing };
   }, []);
 
   useEffect(() => {
@@ -123,7 +133,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
                 <p><strong>Client:</strong> ${pillar.surveyJob.clientName}</p>
                 <p><strong>Surveyor:</strong> ${pillar.surveyor.name}</p>
                 <p><strong>Firm:</strong> ${pillar.surveyor.firmName}</p>
-                <p><strong>Coordinates:</strong> ${validCoordinates.lat.toFixed(6)}, ${validCoordinates.lng.toFixed(6)}</p>
+                <p><strong>Coordinates:</strong> ${validCoordinates.easting}, ${validCoordinates.northing} (UTM Zone 32N) / ${validCoordinates.lat.toFixed(6)}, ${validCoordinates.lng.toFixed(6)} (WGS84)</p>
                 <p><strong>Issued:</strong> ${new Date(pillar.issuedDate).toLocaleDateString()}</p>
               </div>
             </div>
