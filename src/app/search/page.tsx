@@ -21,7 +21,12 @@ import { PillarMap } from "@/components/pillar-map";
 
 interface PillarResult {
   pillarNumber: string;
-  coordinates: { latitude: number; longitude: number };
+  coordinates: {
+    latitude: number;
+    longitude: number;
+    easting: string;
+    northing: string;
+  };
   issuedDate: string;
   surveyor: {
     name: string;
@@ -35,7 +40,12 @@ interface PillarResult {
   };
   nearbyPillars?: Array<{
     pillarNumber: string;
-    coordinates: { latitude: number; longitude: number };
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      easting: string;
+      northing: string;
+    };
     distance: number;
   }>;
 }
@@ -214,8 +224,10 @@ export default function SearchPage() {
                           <MapPin className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">Coordinates:</span>
                           <span>
-                            {result.coordinates.latitude},{" "}
-                            {result.coordinates.longitude}
+                            {result.coordinates.easting},{" "}
+                            {result.coordinates.northing} (UTM Zone 32N) /{" "}
+                            {result.coordinates.latitude.toFixed(6)},{" "}
+                            {result.coordinates.longitude.toFixed(6)} (WGS84)
                           </span>
                         </div>
                       </div>
@@ -299,8 +311,8 @@ export default function SearchPage() {
                                 </Badge>
                               </div>
                               <p className="text-xs text-gray-600">
-                                {nearbyPillar.coordinates.latitude.toFixed(6)},{" "}
-                                {nearbyPillar.coordinates.longitude.toFixed(6)}
+                                {nearbyPillar.coordinates.easting},{" "}
+                                {nearbyPillar.coordinates.northing}
                               </p>
                             </div>
                           </div>

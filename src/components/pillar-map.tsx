@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { googleMapsLoader } from "@/lib/google-maps-loader";
 import {
   Card,
   CardContent,
@@ -78,26 +78,13 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
         setIsLoading(true);
         setMapError(null);
 
-        // Check if API key is available
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-        if (!apiKey) {
-          setMapError("Google Maps API key not configured");
-          setIsLoading(false);
-          return;
-        }
+        // Use the singleton loader
+        const google = await googleMapsLoader.load();
 
-        const loader = new Loader({
-          apiKey,
-          version: "weekly",
-          libraries: ["places", "geometry"],
-        });
-
-        const google = await loader.importLibrary("maps") as any;
-
-        const map = new (google as any).maps.Map(mapRef.current!, {
+        const map = new google.maps.Map(mapRef.current!, {
           center: validCoordinates,
           zoom: 16,
-          mapTypeId: (google as any).maps.MapTypeId.HYBRID,
+          mapTypeId: google.maps.MapTypeId.HYBRID,
           mapTypeControl: true,
           streetViewControl: true,
           fullscreenControl: true,
@@ -107,7 +94,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
         mapInstanceRef.current = map;
 
         // Create custom marker for the main pillar
-        const mainMarker = new (google as any).maps.Marker({
+        const mainMarker = new google.maps.Marker({
           position: validCoordinates,
           map: map,
           title: pillar.pillarNumber,
@@ -121,13 +108,13 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
                 <text x="20" y="25" text-anchor="middle" font-family="Arial" font-size="10" fill="#dc2626">P</text>
               </svg>
             `),
-            scaledSize: new (google as any).maps.Size(40, 40),
-            anchor: new (google as any).maps.Point(20, 20),
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 20),
           },
         });
 
         // Create info window for main pillar
-        const infoWindow = new (google as any).maps.InfoWindow({
+        const infoWindow = new google.maps.InfoWindow({
           content: `
             <div class="p-3 max-w-xs">
               <h3 class="font-bold text-lg mb-2">${pillar.pillarNumber}</h3>
@@ -152,7 +139,7 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
           const nearbyCoords = validateCoordinates(nearbyPillar.coordinates);
           if (!nearbyCoords) return; // Skip invalid coordinates
 
-          const nearbyMarker = new (google as any).maps.Marker({
+          const nearbyMarker = new google.maps.Marker({
             position: nearbyCoords,
             map: map,
             title: nearbyPillar.pillarNumber,
@@ -166,12 +153,12 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
                   <text x="15" y="19" text-anchor="middle" font-family="Arial" font-size="8" fill="#2563eb">P</text>
                 </svg>
               `),
-              scaledSize: new (google as any).maps.Size(30, 30),
-              anchor: new (google as any).maps.Point(15, 15),
+              scaledSize: new google.maps.Size(30, 30),
+              anchor: new google.maps.Point(15, 15),
             },
           });
 
-          const nearbyInfoWindow = new (google as any).maps.InfoWindow({
+          const nearbyInfoWindow = new google.maps.InfoWindow({
             content: `
               <div class="p-2">
                 <h4 class="font-bold">${nearbyPillar.pillarNumber}</h4>
@@ -249,7 +236,6 @@ export function PillarMap({ pillar, nearbyPillars = [] }: PillarMapProps) {
       }
     }
   };
-
 
   if (!pillar) {
     return (
