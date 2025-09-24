@@ -156,6 +156,115 @@ export async function POST(request: NextRequest) {
     const jobCount = await prisma.surveyJob.count();
     const jobNumber = `JOB-${new Date().getFullYear()}-${String(jobCount + 1).padStart(3, "0")}`;
 
+    // Normalize incoming documents: support both array of objects and array of URL strings
+    const incomingDocs = Array.isArray(documents) ? documents : [];
+
+    // Map filename extensions to Prisma DocumentType and mime types.
+    // Return Prisma enum name strings that match the `DocumentType` enum in schema.prisma
+    const guessDocumentType = (filename: string | null): string => {
+      if (!filename) return "OTHER";
+      const ext = filename.split(".").pop()?.toLowerCase();
+      switch (ext) {
+        case "kml":
+          return "KML_FILE";
+        case "dxf":
+          return "DXF_FILE";
+        case "dwg":
+          return "DWG_FILE";
+        case "pdf":
+          return "SURVEY_PLAN";
+        case "jpg":
+        case "jpeg":
+        case "png":
+          return "OTHER";
+        default:
+          return "OTHER";
+      }
+    };
+
+    const guessMimeType = (filename: string | null) => {
+      if (!filename) return "application/octet-stream";
+      const ext = filename.split(".").pop()?.toLowerCase();
+      switch (ext) {
+        case "pdf":
+          return "application/pdf";
+        case "kml":
+          return "application/vnd.google-earth.kml+xml";
+        case "dxf":
+          return "application/dxf";
+        case "dwg":
+          return "application/dwg";
+        case "jpg":
+        case "jpeg":
+          return "image/jpeg";
+        case "png":
+          return "image/png";
+        default:
+          return "application/octet-stream";
+      }
+    };
+
+    const documentsToCreate = incomingDocs.map((doc: any) => {
+      // If the client already sent a full document object, use its values (with safe fallbacks)
+      if (
+        doc &&
+        typeof doc === "object" &&
+        (doc.filePath || doc.fileName || doc.url)
+      ) {
+        const filePath = (doc.filePath || doc.url || "").toString();
+        const fileName = (
+          doc.fileName ||
+          (filePath ? filePath.split("/").pop() : null) ||
+          "unknown"
+        ).toString();
+        const fileSize =
+          typeof doc.fileSize === "number" ? Math.floor(doc.fileSize) : 0;
+        const mimeType = (doc.mimeType || guessMimeType(fileName)).toString();
+
+        return {
+          fileName,
+          filePath,
+          fileSize,
+          mimeType,
+          documentType: doc.documentType || guessDocumentType(fileName),
+        };
+      }
+
+      // If the client sent a string (URL), convert it into the expected shape
+      if (typeof doc === "string") {
+        let filePath = doc;
+        let fileName: string | null = null;
+        try {
+          const parsed = new URL(doc);
+          filePath = parsed.href;
+          fileName = parsed.pathname.split("/").pop() || null;
+        } catch (e) {
+          // Not a valid URL — treat string as a path
+          fileName = doc.split("/").pop() || doc;
+        }
+
+        const finalFileName = (fileName || "unknown").toString();
+        const mimeType = guessMimeType(finalFileName);
+
+        return {
+          fileName: finalFileName,
+          filePath: filePath.toString(),
+          fileSize: 0,
+          mimeType,
+          documentType: guessDocumentType(finalFileName),
+        };
+      }
+
+      // Fallback for unexpected shapes - provide safe defaults so Prisma won't error
+      return {
+        fileName: "unknown",
+        filePath: "",
+        fileSize: 0,
+        mimeType: "application/octet-stream",
+        documentType: "OTHER",
+      };
+    });
+
     // Create survey job with documents
     const surveyJob = await prisma.surveyJob.create({
       data: {
@@ -169,7 +278,8 @@ export async function POST(request: NextRequest) {
           ? (validatedData.coordinates as Prisma.InputJsonValue)
           : Prisma.JsonNull,
         // Store requested coordinates from the form
-        requestedCoordinates: validatedData.pillarCoordinates as Prisma.InputJsonValue,
+        requestedCoordinates:
+          validatedData.pillarCoordinates as Prisma.InputJsonValue,
         // Enhanced Survey Details Fields
         stampReference: validatedData.stampReference || null,
         totalAmount: validatedData.totalAmount || null,
@@ -188,13 +298,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         surveyorId: user.surveyor.id,
         documents: {
-          create: documents.map((doc: any) => ({
-            fileName: doc.fileName,
-            filePath: doc.filePath,
-            fileSize: doc.fileSize,
-            mimeType: doc.mimeType,
-            documentType: doc.documentType,
-          })),
+          create: documentsToCreate,
         },
         workflowSteps: {
           create: [
