@@ -28,7 +28,9 @@ export const surveyJobSchema = z.object({
     })
     .optional(),
   // Pillar coordinates - array of coordinate pairs
-  pillarCoordinates: z.array(coordinateSchema).min(1, "At least one coordinate is required"),
+  pillarCoordinates: z
+    .array(coordinateSchema)
+    .min(1, "At least one coordinate is required"),
   // Enhanced Survey Details Fields
   stampReference: optionalString,
   totalAmount: optionalString,
@@ -47,10 +49,23 @@ export const surveyJobSchema = z.object({
 export const surveyorRegistrationSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Valid email is required"),
-  nisMembershipNumber: z.string().min(1, "NIS membership number is required"),
+  // NIS format e.g., NIS/FM/2876 (two uppercase letters mid segment, 4 digits)
+  nisMembershipNumber: z
+    .string()
+    .regex(
+      /^NIS\/[A-Z]{2}\/\d{4}$/i,
+      "Format: NIS/FM/2876 (2 letters, 4 digits)"
+    )
+    .transform((v) => v.toUpperCase()),
+  // SURCON format e.g., R-2846 (R- and 4 digits)
   surconRegistrationNumber: z
     .string()
-    .min(1, "SURCON registration number is required"),
+    .regex(/^R-\d{4}$/i, "Format: R-2846 (4 digits)")
+    .transform((v) => v.toUpperCase()),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password is too long"),
   firmName: z.string().optional(),
   phoneNumber: z.string().min(10, "Valid phone number is required"),
   address: z.string().min(10, "Address is required"),

@@ -11,7 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Upload, FileText, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface BlueCopyUploadProps {
@@ -21,6 +27,7 @@ interface BlueCopyUploadProps {
   isUploaded: boolean;
   userRole: string;
   onUploadSuccess?: () => void;
+  roUploaded?: boolean;
 }
 
 export function BlueCopyUpload({
@@ -30,6 +37,7 @@ export function BlueCopyUpload({
   isUploaded,
   userRole,
   onUploadSuccess,
+  roUploaded,
 }: BlueCopyUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -49,7 +57,9 @@ export function BlueCopyUpload({
     // Check file type
     const extension = `.${file.name.split(".").pop()?.toLowerCase()}`;
     if (!acceptedFormats.includes(extension)) {
-      toast.error("File type not supported. Please upload PDF, PNG, JPEG, or DWG files.");
+      toast.error(
+        "File type not supported. Please upload PDF, PNG, JPEG, or DWG files."
+      );
       return;
     }
 
@@ -137,7 +147,8 @@ export function BlueCopyUpload({
           <div className="text-center py-6">
             <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-4" />
             <p className="text-gray-600">
-              Blue Copy upload will be available after pillar numbers are issued.
+              Blue Copy upload will be available after pillar numbers are
+              issued.
             </p>
           </div>
         ) : isUploaded ? (
@@ -146,9 +157,15 @@ export function BlueCopyUpload({
             <p className="text-green-700 font-medium">
               Blue Copy has been uploaded successfully!
             </p>
-            <p className="text-sm text-gray-600 mt-2">
-              Waiting for admin to upload the R of O document.
-            </p>
+            {roUploaded ? (
+              <p className="text-sm text-gray-600 mt-2">
+                R of O uploaded. Job completed.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600 mt-2">
+                Waiting for admin to upload the R of O document.
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

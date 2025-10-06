@@ -31,6 +31,17 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Lightweight client-side validation
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        toast.error("Enter a valid email");
+        setIsLoading(false);
+        return;
+      }
+      if (!password || password.length < 1) {
+        toast.error("Enter your password");
+        setIsLoading(false);
+        return;
+      }
       const result = await signIn("credentials", {
         email,
         password,

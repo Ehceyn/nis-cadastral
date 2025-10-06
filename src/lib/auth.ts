@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./db";
+import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,12 +22,18 @@ export const authOptions: NextAuthOptions = {
             include: { surveyor: true },
           });
 
-          if (!user) {
+          if (!user || !user.passwordHash) {
             return null;
           }
 
-          // In a real app, you'd hash passwords
-          // const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.passwordHash
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
 
           return {
             id: user.id,

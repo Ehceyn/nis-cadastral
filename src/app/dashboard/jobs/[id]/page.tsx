@@ -207,20 +207,35 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                     Requested Pillar Coordinates (UTM Zone 32N)
                   </label>
                   <div className="mt-2 space-y-2">
-                    {(job.requestedCoordinates as Array<{ easting: string; northing: string }>).map((coord, index) => (
-                      <div key={index} className="p-2 bg-gray-50 rounded border">
-                        <span className="text-sm font-medium">Coordinate {index + 1}:</span>
+                    {(
+                      job.requestedCoordinates as Array<{
+                        easting: string;
+                        northing: string;
+                      }>
+                    ).map((coord, index) => (
+                      <div
+                        key={index}
+                        className="p-2 bg-gray-50 rounded border"
+                      >
+                        <span className="text-sm font-medium">
+                          Coordinate {index + 1}:
+                        </span>
                         <span className="text-sm ml-2">
                           E: {coord.easting}, N: {coord.northing}
                         </span>
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Map visualization */}
                   <div className="mt-4">
                     <CoordinateMap
-                      coordinates={job.requestedCoordinates as Array<{ easting: string; northing: string }>}
+                      coordinates={
+                        job.requestedCoordinates as Array<{
+                          easting: string;
+                          northing: string;
+                        }>
+                      }
                       height="300px"
                     />
                   </div>
@@ -257,7 +272,8 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                 <CardTitle>Assigned Pillar Numbers</CardTitle>
                 {job.planNumber && (
                   <p className="text-sm text-gray-600 mt-1">
-                    Plan Number: <span className="font-medium">{job.planNumber}</span>
+                    Plan Number:{" "}
+                    <span className="font-medium">{job.planNumber}</span>
                   </p>
                 )}
               </CardHeader>
@@ -278,7 +294,8 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                         </p>
                         {pillar.coordinates && (
                           <p className="text-xs text-gray-600 mt-1">
-                            E: {(pillar.coordinates as any).easting}, N: {(pillar.coordinates as any).northing}
+                            E: {(pillar.coordinates as any).easting}, N:{" "}
+                            {(pillar.coordinates as any).northing}
                           </p>
                         )}
                       </div>
@@ -429,7 +446,12 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       <AdminJobApproval
                         jobId={job.id}
                         jobNumber={job.jobNumber}
-                        requestedCoordinates={job.requestedCoordinates as Array<{ easting: string; northing: string }> || []}
+                        requestedCoordinates={
+                          (job.requestedCoordinates as Array<{
+                            easting: string;
+                            northing: string;
+                          }>) || []
+                        }
                       />
                     </div>
                   ) : (
@@ -455,6 +477,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
             isEnabled={job.pillarNumbers.length > 0}
             isUploaded={job.blueCopyUploaded || false}
             userRole={session.user.role}
+            roUploaded={job.roDocumentUploaded || job.status === "COMPLETED"}
           />
 
           {/* R of O Document Upload - Available for Admins after Blue Copy is uploaded */}

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { surveyorRegistrationSchema } from "@/lib/validations";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,10 +47,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user and surveyor
+    const passwordHash = await bcrypt.hash(validatedData.password, 10);
+
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
         email: validatedData.email,
+        passwordHash,
         role: "SURVEYOR",
         surveyor: {
           create: {

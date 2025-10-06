@@ -1,23 +1,37 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting database seeding...")
+  console.log("🌱 Starting database seeding...");
 
   try {
     // Clear existing data (in reverse order of dependencies)
-    console.log("🧹 Cleaning existing data...")
-    await prisma.workflowStep.deleteMany()
-    await prisma.document.deleteMany()
-    await prisma.pillarNumber.deleteMany()
-    await prisma.surveyJob.deleteMany()
-    await prisma.surveyor.deleteMany()
-    await prisma.user.deleteMany()
-    await prisma.pillarSystem.deleteMany()
+    console.log("🧹 Cleaning existing data...");
+    await prisma.workflowStep.deleteMany();
+    await prisma.document.deleteMany();
+    await prisma.pillarNumber.deleteMany();
+    await prisma.surveyJob.deleteMany();
+    await prisma.surveyor.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.pillarSystem.deleteMany();
 
     // Create Users and Surveyors
-    console.log("👥 Creating users and surveyors...")
+    console.log("👥 Creating users and surveyors...");
+
+    const buildPassword = (role, fullName) => {
+      const first = (fullName || "").split(" ")[0]?.toLowerCase() || "user";
+      if (role === "SURVEYOR") return `surveyor${first}`;
+      if (role === "ADMIN") return `admin${first}`;
+      if (role === "NIS_OFFICER") return `nis${first}`;
+      return `user${first}`;
+    };
+
+    const withPassword = async (role, name) => ({
+      password: buildPassword(role, name),
+      passwordHash: await bcrypt.hash(buildPassword(role, name), 10),
+    });
 
     const users = await Promise.all([
       // Verified Surveyors
@@ -25,11 +39,13 @@ async function main() {
         data: {
           name: "Adebayo Johnson",
           email: "adebayo.johnson@email.com",
+          passwordHash: (await withPassword("SURVEYOR", "Adebayo Johnson"))
+            .passwordHash,
           role: "SURVEYOR",
           surveyor: {
             create: {
-              nisMembershipNumber: "NIS-RS-2020-001",
-              surconRegistrationNumber: "SUR-RS-2020-001",
+              nisMembershipNumber: "NIS/FM/2876",
+              surconRegistrationNumber: "R-2846",
               firmName: "Johnson & Associates Surveyors",
               phoneNumber: "+234 803 123 4567",
               address: "15 Aba Road, Port Harcourt, Rivers State",
@@ -45,11 +61,13 @@ async function main() {
         data: {
           name: "Chioma Okafor",
           email: "chioma.okafor@email.com",
+          passwordHash: (await withPassword("SURVEYOR", "Chioma Okafor"))
+            .passwordHash,
           role: "SURVEYOR",
           surveyor: {
             create: {
-              nisMembershipNumber: "NIS-RS-2021-045",
-              surconRegistrationNumber: "SUR-RS-2021-045",
+              nisMembershipNumber: "NIS/FM/2877",
+              surconRegistrationNumber: "R-2847",
               firmName: "Precision Survey Solutions Ltd",
               phoneNumber: "+234 806 987 6543",
               address: "23 Trans Amadi Industrial Layout, Port Harcourt",
@@ -65,11 +83,13 @@ async function main() {
         data: {
           name: "Ibrahim Musa",
           email: "ibrahim.musa@email.com",
+          passwordHash: (await withPassword("SURVEYOR", "Ibrahim Musa"))
+            .passwordHash,
           role: "SURVEYOR",
           surveyor: {
             create: {
-              nisMembershipNumber: "NIS-RS-2019-078",
-              surconRegistrationNumber: "SUR-RS-2019-078",
+              nisMembershipNumber: "NIS/FM/2878",
+              surconRegistrationNumber: "R-2848",
               firmName: "Musa Geospatial Services",
               phoneNumber: "+234 701 456 7890",
               address: "8 Old Aba Road, Port Harcourt, Rivers State",
@@ -86,11 +106,13 @@ async function main() {
         data: {
           name: "Grace Emenike",
           email: "grace.emenike@email.com",
+          passwordHash: (await withPassword("SURVEYOR", "Grace Emenike"))
+            .passwordHash,
           role: "SURVEYOR",
           surveyor: {
             create: {
-              nisMembershipNumber: "NIS-RS-2024-012",
-              surconRegistrationNumber: "SUR-RS-2024-012",
+              nisMembershipNumber: "NIS/FM/2879",
+              surconRegistrationNumber: "R-2849",
               firmName: "Emenike Survey Consultants",
               phoneNumber: "+234 809 234 5678",
               address: "45 Rumuola Road, Port Harcourt, Rivers State",
@@ -106,6 +128,8 @@ async function main() {
         data: {
           name: "Samuel Okoro",
           email: "samuel.okoro@nis.gov.ng",
+          passwordHash: (await withPassword("NIS_OFFICER", "Samuel Okoro"))
+            .passwordHash,
           role: "NIS_OFFICER",
         },
       }),
@@ -115,30 +139,36 @@ async function main() {
         data: {
           name: "Mrs. Patricia Wike",
           email: "patricia.wike@surveyorgeneral.rs.gov.ng",
+          passwordHash: (await withPassword("ADMIN", "Mrs. Patricia Wike"))
+            .passwordHash,
           role: "ADMIN",
         },
       }),
-    ])
+    ]);
 
-    console.log(`✅ Created ${users.length} users`)
+    console.log(`✅ Created ${users.length} users`);
 
     // Initialize Pillar System
-    console.log("⚙️ Initializing pillar system...")
+    console.log("⚙️ Initializing pillar system...");
     const pillarSystem = await prisma.pillarSystem.create({
       data: {
         seriesPrefix: "SC/CN",
         lastIssuedNumber: 3565, // Starting from a realistic number
       },
-    })
-    console.log(`✅ Initialized pillar system with prefix: ${pillarSystem.seriesPrefix}`)
+    });
+    console.log(
+      `✅ Initialized pillar system with prefix: ${pillarSystem.seriesPrefix}`
+    );
 
     // Get verified surveyors for creating jobs
-    const verifiedSurveyors = users.filter((user) => user.surveyor && user.surveyor.status === "VERIFIED")
+    const verifiedSurveyors = users.filter(
+      (user) => user.surveyor && user.surveyor.status === "VERIFIED"
+    );
 
     // Create Survey Jobs with realistic data
-    console.log("📋 Creating survey jobs...")
+    console.log("📋 Creating survey jobs...");
 
-    const surveyJobs = []
+    const surveyJobs = [];
 
     // Job 1 - Completed
     const job1 = await prisma.surveyJob.create({
@@ -147,7 +177,8 @@ async function main() {
         clientName: "Mr. Emeka Okonkwo",
         clientEmail: "emeka.okonkwo@gmail.com",
         clientPhone: "+234 803 567 8901",
-        location: "Plot 15, Block C, New GRA Phase 2, Port Harcourt, Rivers State",
+        location:
+          "Plot 15, Block C, New GRA Phase 2, Port Harcourt, Rivers State",
         description: "Cadastral survey for residential property development",
         coordinates: {
           latitude: 4.8156,
@@ -170,8 +201,8 @@ async function main() {
         userId: verifiedSurveyors[0].id,
         surveyorId: verifiedSurveyors[0].surveyor.id,
       },
-    })
-    surveyJobs.push(job1)
+    });
+    surveyJobs.push(job1);
 
     // Job 2 - NIS Review
     const job2 = await prisma.surveyJob.create({
@@ -198,8 +229,8 @@ async function main() {
         userId: verifiedSurveyors[1].id,
         surveyorId: verifiedSurveyors[1].surveyor.id,
       },
-    })
-    surveyJobs.push(job2)
+    });
+    surveyJobs.push(job2);
 
     // Job 3 - Admin Review
     const job3 = await prisma.surveyJob.create({
@@ -224,8 +255,8 @@ async function main() {
         userId: verifiedSurveyors[2].id,
         surveyorId: verifiedSurveyors[2].surveyor.id,
       },
-    })
-    surveyJobs.push(job3)
+    });
+    surveyJobs.push(job3);
 
     // Job 4 - Recently Submitted
     const job4 = await prisma.surveyJob.create({
@@ -249,8 +280,8 @@ async function main() {
         userId: verifiedSurveyors[0].id,
         surveyorId: verifiedSurveyors[0].surveyor.id,
       },
-    })
-    surveyJobs.push(job4)
+    });
+    surveyJobs.push(job4);
 
     // Job 5 - Rejected
     const job5 = await prisma.surveyJob.create({
@@ -274,15 +305,15 @@ async function main() {
         userId: verifiedSurveyors[1].id,
         surveyorId: verifiedSurveyors[1].surveyor.id,
       },
-    })
-    surveyJobs.push(job5)
+    });
+    surveyJobs.push(job5);
 
-    console.log(`✅ Created ${surveyJobs.length} survey jobs`)
+    console.log(`✅ Created ${surveyJobs.length} survey jobs`);
 
     // Create Documents for each job
-    console.log("📄 Creating documents...")
+    console.log("📄 Creating documents...");
 
-    const documents = []
+    const documents = [];
 
     // Documents for Job 1 (Completed)
     const job1Docs = await Promise.all([
@@ -336,8 +367,8 @@ async function main() {
           surveyJobId: job1.id,
         },
       }),
-    ])
-    documents.push(...job1Docs)
+    ]);
+    documents.push(...job1Docs);
 
     // Documents for Job 2 (NIS Review)
     const job2Docs = await Promise.all([
@@ -361,8 +392,8 @@ async function main() {
           surveyJobId: job2.id,
         },
       }),
-    ])
-    documents.push(...job2Docs)
+    ]);
+    documents.push(...job2Docs);
 
     // Documents for Job 3 (Admin Review)
     const job3Docs = await Promise.all([
@@ -386,8 +417,8 @@ async function main() {
           surveyJobId: job3.id,
         },
       }),
-    ])
-    documents.push(...job3Docs)
+    ]);
+    documents.push(...job3Docs);
 
     // Documents for Job 4 (Recently Submitted)
     const job4Docs = await Promise.all([
@@ -401,15 +432,15 @@ async function main() {
           surveyJobId: job4.id,
         },
       }),
-    ])
-    documents.push(...job4Docs)
+    ]);
+    documents.push(...job4Docs);
 
-    console.log(`✅ Created ${documents.length} documents`)
+    console.log(`✅ Created ${documents.length} documents`);
 
     // Create Workflow Steps
-    console.log("🔄 Creating workflow steps...")
+    console.log("🔄 Creating workflow steps...");
 
-    const workflowSteps = []
+    const workflowSteps = [];
 
     // Workflow for Job 1 (Completed)
     const job1Workflow = await Promise.all([
@@ -445,7 +476,8 @@ async function main() {
           stepName: "Pillar Number Assignment",
           status: "COMPLETED",
           completedAt: new Date("2024-01-22T16:45:00Z"),
-          notes: "2 pillar numbers assigned: SC/CN 3566, SC/CN 3567. Plan number: PH/GRA/2024/001",
+          notes:
+            "2 pillar numbers assigned: SC/CN 3566, SC/CN 3567. Plan number: PH/GRA/2024/001",
           surveyJobId: job1.id,
         },
       }),
@@ -476,8 +508,8 @@ async function main() {
           surveyJobId: job1.id,
         },
       }),
-    ])
-    workflowSteps.push(...job1Workflow)
+    ]);
+    workflowSteps.push(...job1Workflow);
 
     // Workflow for Job 2 (NIS Review)
     const job2Workflow = await Promise.all([
@@ -533,8 +565,8 @@ async function main() {
           surveyJobId: job2.id,
         },
       }),
-    ])
-    workflowSteps.push(...job2Workflow)
+    ]);
+    workflowSteps.push(...job2Workflow);
 
     // Workflow for Job 3 (Admin Review)
     const job3Workflow = await Promise.all([
@@ -592,8 +624,8 @@ async function main() {
           surveyJobId: job3.id,
         },
       }),
-    ])
-    workflowSteps.push(...job3Workflow)
+    ]);
+    workflowSteps.push(...job3Workflow);
 
     // Workflow for Job 4 (Recently Submitted)
     const job4Workflow = await Promise.all([
@@ -648,8 +680,8 @@ async function main() {
           surveyJobId: job4.id,
         },
       }),
-    ])
-    workflowSteps.push(...job4Workflow)
+    ]);
+    workflowSteps.push(...job4Workflow);
 
     // Workflow for Job 5 (Rejected)
     const job5Workflow = await Promise.all([
@@ -667,7 +699,8 @@ async function main() {
           stepName: "NIS Review",
           status: "REJECTED",
           completedAt: new Date("2024-01-12T11:20:00Z"),
-          notes: "Rejected due to incomplete documentation. Missing boundary coordinates.",
+          notes:
+            "Rejected due to incomplete documentation. Missing boundary coordinates.",
           surveyJobId: job5.id,
         },
       }),
@@ -706,13 +739,13 @@ async function main() {
           surveyJobId: job5.id,
         },
       }),
-    ])
-    workflowSteps.push(...job5Workflow)
+    ]);
+    workflowSteps.push(...job5Workflow);
 
-    console.log(`✅ Created ${workflowSteps.length} workflow steps`)
+    console.log(`✅ Created ${workflowSteps.length} workflow steps`);
 
     // Create Pillar Numbers for completed jobs
-    console.log("📍 Creating pillar numbers...")
+    console.log("📍 Creating pillar numbers...");
 
     const pillarNumbers = await Promise.all([
       // Pillars for Job 1 (Completed) - mapped to coordinates
@@ -734,40 +767,42 @@ async function main() {
           surveyorId: verifiedSurveyors[0].surveyor.id,
         },
       }),
-    ])
+    ]);
 
-    console.log(`✅ Created ${pillarNumbers.length} pillar numbers`)
+    console.log(`✅ Created ${pillarNumbers.length} pillar numbers`);
 
     // Summary
-    console.log("\n🎉 Database seeding completed successfully!")
-    console.log("📊 Summary:")
-    console.log(`   👥 Users: ${users.length}`)
-    console.log(`   🏢 Surveyors: ${users.filter((u) => u.surveyor).length}`)
-    console.log(`   📋 Survey Jobs: ${surveyJobs.length}`)
-    console.log(`   📄 Documents: ${documents.length}`)
-    console.log(`   🔄 Workflow Steps: ${workflowSteps.length}`)
-    console.log(`   📍 Pillar Numbers: ${pillarNumbers.length}`)
-    console.log(`   ⚙️ Pillar System: ${pillarSystem.seriesPrefix} (Last: ${pillarSystem.lastIssuedNumber})`)
+    console.log("\n🎉 Database seeding completed successfully!");
+    console.log("📊 Summary:");
+    console.log(`   👥 Users: ${users.length}`);
+    console.log(`   🏢 Surveyors: ${users.filter((u) => u.surveyor).length}`);
+    console.log(`   📋 Survey Jobs: ${surveyJobs.length}`);
+    console.log(`   📄 Documents: ${documents.length}`);
+    console.log(`   🔄 Workflow Steps: ${workflowSteps.length}`);
+    console.log(`   📍 Pillar Numbers: ${pillarNumbers.length}`);
+    console.log(
+      `   ⚙️ Pillar System: ${pillarSystem.seriesPrefix} (Last: ${pillarSystem.lastIssuedNumber})`
+    );
 
-    console.log("\n🔐 Test Accounts:")
-    console.log("   Surveyors:")
-    console.log("   - adebayo.johnson@email.com (Verified)")
-    console.log("   - chioma.okafor@email.com (Verified)")
-    console.log("   - ibrahim.musa@email.com (Verified)")
-    console.log("   - grace.emenike@email.com (Pending)")
-    console.log("   NIS Officer:")
-    console.log("   - samuel.okoro@nis.gov.ng")
-    console.log("   Admin:")
-    console.log("   - patricia.wike@surveyorgeneral.rs.gov.ng")
+    console.log("\n🔐 Test Accounts (email → password):");
+    console.log("   Surveyors:");
+    console.log("   - adebayo.johnson@email.com → surveyoradebayo");
+    console.log("   - chioma.okafor@email.com → surveyorchioma");
+    console.log("   - ibrahim.musa@email.com → surveyoribrahim");
+    console.log("   - grace.emenike@email.com → surveyorgrace");
+    console.log("   NIS Officer:");
+    console.log("   - samuel.okoro@nis.gov.ng → nissamuel");
+    console.log("   Admin:");
+    console.log("   - patricia.wike@surveyorgeneral.rs.gov.ng → adminmrs.");
   } catch (error) {
-    console.error("❌ Error seeding database:", error)
-    throw error
+    console.error("❌ Error seeding database:", error);
+    throw error;
   } finally {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   }
 }
 
 main().catch((e) => {
-  console.error(e)
-  process.exit(1)
-})
+  console.error(e);
+  process.exit(1);
+});
