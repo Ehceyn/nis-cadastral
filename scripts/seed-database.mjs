@@ -1,7 +1,18 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 
-const prisma = new PrismaClient();
+// Load environment variables from .env.local
+dotenv.config({ path: ".env.local" });
+
+// Use DIRECT_URL for better connection stability
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL,
+    },
+  },
+});
 
 async function main() {
   console.log("🌱 Starting database seeding...");
@@ -34,6 +45,30 @@ async function main() {
     });
 
     const users = await Promise.all([
+      // REAL SURVEYOR - Kurotamuno Peace Jackson
+      prisma.user.create({
+        data: {
+          name: "Kurotamuno Peace Jackson",
+          email: "kpj.surveys@email.com",
+          passwordHash: (
+            await withPassword("SURVEYOR", "Kurotamuno Peace Jackson")
+          ).passwordHash,
+          role: "SURVEYOR",
+          surveyor: {
+            create: {
+              nisMembershipNumber: "NIS/FM/KPJ001",
+              surconRegistrationNumber: "R-KPJ2025",
+              firmName: "KPJ Survey Consultants",
+              phoneNumber: "+234 803 000 0000",
+              address: "Port Harcourt, Rivers State",
+              status: "VERIFIED",
+              verifiedAt: new Date("2024-12-01"),
+            },
+          },
+        },
+        include: { surveyor: true },
+      }),
+
       // Verified Surveyors
       prisma.user.create({
         data: {
@@ -152,8 +187,8 @@ async function main() {
     console.log("⚙️ Initializing pillar system...");
     const pillarSystem = await prisma.pillarSystem.create({
       data: {
-        seriesPrefix: "SC/CN",
-        lastIssuedNumber: 3565, // Starting from a realistic number
+        seriesPrefix: "SC/CS",
+        lastIssuedNumber: 6673, // Updated to reflect the last pillar from real data
       },
     });
     console.log(
@@ -165,10 +200,96 @@ async function main() {
       (user) => user.surveyor && user.surveyor.status === "VERIFIED"
     );
 
+    // KPJ Surveyor (first in the list)
+    const kpjSurveyor = verifiedSurveyors[0];
+
     // Create Survey Jobs with realistic data
     console.log("📋 Creating survey jobs...");
 
     const surveyJobs = [];
+
+    // REAL JOB 1 - Mr. Chimzi Property (Completed)
+    const realJob1 = await prisma.surveyJob.create({
+      data: {
+        jobNumber: "JOB-2025-KPJ-001",
+        clientName: "Mr. Chimzi",
+        titleHolderName: "Mr. Eyikoda Kcaj",
+        clientEmail: "chimzichidum@gmail.com",
+        clientPhone: "08061986793",
+        location:
+          "Ogoin-Piri, Chief Akpan Pedro New Layout, Abonnema, Akuku-Toru Local Govt. Area, Rivers State",
+        description: "Cadastral survey for residential property",
+        coordinates: {
+          latitude: 4.7167,
+          longitude: 6.8167,
+        },
+        requestedCoordinates: [
+          { easting: "253635.00", northing: "523028.00" },
+          { easting: "253644.14", northing: "523075.98" },
+          { easting: "253688.56", northing: "523055.31" },
+          { easting: "253673.73", northing: "523007.64" },
+        ],
+        planNumber: "KPJ/AB/2025/001",
+        pillarNumbersRequired: 4,
+        areaSqm: "2122.89",
+        totalAmount: "426000",
+        depositAmount: "420000",
+        beaconAmount: "6000",
+        blueCopyUploaded: true,
+        blueCopyUploadedAt: new Date("2025-04-17T10:30:00Z"),
+        roDocumentUploaded: true,
+        roDocumentUploadedAt: new Date("2025-04-18T14:15:00Z"),
+        status: "COMPLETED",
+        submittedAt: new Date("2025-04-16T09:00:00Z"),
+        updatedAt: new Date("2025-04-18T16:45:00Z"),
+        dateApproved: new Date("2025-04-17T11:30:00Z"),
+        userId: kpjSurveyor.id,
+        surveyorId: kpjSurveyor.surveyor.id,
+      },
+    });
+    surveyJobs.push(realJob1);
+
+    // REAL JOB 2 - Mr. Oibapka Maharba Homi Property (Completed)
+    const realJob2 = await prisma.surveyJob.create({
+      data: {
+        jobNumber: "JOB-2025-KPJ-002",
+        clientName: "Mr. Oibapka Maharba Homi",
+        titleHolderName: "Mr. Oibapka Maharba Homi",
+        clientEmail: "maharbahomi@gmail.com",
+        clientPhone: "08061986775",
+        location:
+          "Oka-Nsimu Ebara, Aleto Eleme, Eleme Local Govt. Area, Rivers State",
+        description: "Cadastral survey for property registration",
+        coordinates: {
+          latitude: 4.8,
+          longitude: 7.15,
+        },
+        requestedCoordinates: [
+          { easting: "289641.62", northing: "530212.85" },
+          { easting: "289651.28", northing: "530228.48" },
+          { easting: "289660.36", northing: "530228.20" },
+          { easting: "289674.32", northing: "530220.85" },
+          { easting: "289664.44", northing: "530204.45" },
+        ],
+        planNumber: "KPJ/EL/2025/001",
+        pillarNumbersRequired: 5,
+        areaSqm: "477.05",
+        totalAmount: "157500",
+        depositAmount: "150000",
+        beaconAmount: "7500",
+        blueCopyUploaded: true,
+        blueCopyUploadedAt: new Date("2025-07-02T10:30:00Z"),
+        roDocumentUploaded: true,
+        roDocumentUploadedAt: new Date("2025-07-03T14:15:00Z"),
+        status: "COMPLETED",
+        submittedAt: new Date("2025-07-01T09:00:00Z"),
+        updatedAt: new Date("2025-07-03T16:45:00Z"),
+        dateApproved: new Date("2025-07-02T11:30:00Z"),
+        userId: kpjSurveyor.id,
+        surveyorId: kpjSurveyor.surveyor.id,
+      },
+    });
+    surveyJobs.push(realJob2);
 
     // Job 1 - Completed
     const job1 = await prisma.surveyJob.create({
@@ -198,8 +319,8 @@ async function main() {
         submittedAt: new Date("2024-01-10T09:30:00Z"),
         updatedAt: new Date("2024-01-25T16:45:00Z"),
         dateApproved: new Date("2024-01-22T11:30:00Z"),
-        userId: verifiedSurveyors[0].id,
-        surveyorId: verifiedSurveyors[0].surveyor.id,
+        userId: verifiedSurveyors[1].id,
+        surveyorId: verifiedSurveyors[1].surveyor.id,
       },
     });
     surveyJobs.push(job1);
@@ -226,8 +347,8 @@ async function main() {
         status: "NIS_REVIEW",
         submittedAt: new Date("2024-01-15T14:20:00Z"),
         updatedAt: new Date("2024-01-16T10:15:00Z"),
-        userId: verifiedSurveyors[1].id,
-        surveyorId: verifiedSurveyors[1].surveyor.id,
+        userId: verifiedSurveyors[2].id,
+        surveyorId: verifiedSurveyors[2].surveyor.id,
       },
     });
     surveyJobs.push(job2);
@@ -252,8 +373,8 @@ async function main() {
         status: "ADMIN_REVIEW",
         submittedAt: new Date("2024-01-08T11:45:00Z"),
         updatedAt: new Date("2024-01-20T09:30:00Z"),
-        userId: verifiedSurveyors[2].id,
-        surveyorId: verifiedSurveyors[2].surveyor.id,
+        userId: verifiedSurveyors[3].id,
+        surveyorId: verifiedSurveyors[3].surveyor.id,
       },
     });
     surveyJobs.push(job3);
@@ -277,8 +398,8 @@ async function main() {
         pillarNumbersRequired: 2,
         status: "SUBMITTED",
         submittedAt: new Date("2024-01-22T16:30:00Z"),
-        userId: verifiedSurveyors[0].id,
-        surveyorId: verifiedSurveyors[0].surveyor.id,
+        userId: verifiedSurveyors[1].id,
+        surveyorId: verifiedSurveyors[1].surveyor.id,
       },
     });
     surveyJobs.push(job4);
@@ -302,8 +423,8 @@ async function main() {
         status: "NIS_REJECTED",
         submittedAt: new Date("2024-01-05T13:15:00Z"),
         updatedAt: new Date("2024-01-12T11:20:00Z"),
-        userId: verifiedSurveyors[1].id,
-        surveyorId: verifiedSurveyors[1].surveyor.id,
+        userId: verifiedSurveyors[2].id,
+        surveyorId: verifiedSurveyors[2].surveyor.id,
       },
     });
     surveyJobs.push(job5);
@@ -314,6 +435,76 @@ async function main() {
     console.log("📄 Creating documents...");
 
     const documents = [];
+
+    // Documents for Real Job 1 (Mr. Chimzi)
+    const realJob1Docs = await Promise.all([
+      prisma.document.create({
+        data: {
+          fileName: "mandatory_deposit_chimzi.png",
+          filePath: "/media/image1.png",
+          fileSize: 250000,
+          mimeType: "image/png",
+          documentType: "OTHER",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "beacon_fees_chimzi.png",
+          filePath: "/media/image2.png",
+          fileSize: 240000,
+          mimeType: "image/png",
+          documentType: "OTHER",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "sketch_parcel_chimzi.png",
+          filePath: "/media/image3.png",
+          fileSize: 350000,
+          mimeType: "image/png",
+          documentType: "SURVEY_PLAN",
+          surveyJobId: realJob1.id,
+        },
+      }),
+    ]);
+    documents.push(...realJob1Docs);
+
+    // Documents for Real Job 2 (Mr. Oibapka)
+    const realJob2Docs = await Promise.all([
+      prisma.document.create({
+        data: {
+          fileName: "mandatory_deposit_oibapka.jpg",
+          filePath: "/media/image5.jpg",
+          fileSize: 280000,
+          mimeType: "image/jpeg",
+          documentType: "OTHER",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "beacon_fees_oibapka.jpg",
+          filePath: "/media/image4.jpg",
+          fileSize: 270000,
+          mimeType: "image/jpeg",
+          documentType: "OTHER",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          fileName: "sketch_parcel_oibapka.jpg",
+          filePath: "/media/image6.jpg",
+          fileSize: 320000,
+          mimeType: "image/jpeg",
+          documentType: "SURVEY_PLAN",
+          surveyJobId: realJob2.id,
+        },
+      }),
+    ]);
+    documents.push(...realJob2Docs);
 
     // Documents for Job 1 (Completed)
     const job1Docs = await Promise.all([
@@ -441,6 +632,144 @@ async function main() {
     console.log("🔄 Creating workflow steps...");
 
     const workflowSteps = [];
+
+    // Workflow for Real Job 1 (Mr. Chimzi - Completed)
+    const realJob1Workflow = await Promise.all([
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Submitted",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-16T09:00:00Z"),
+          notes: "Job submitted by KPJ Survey Consultants",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "NIS Review",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-16T16:30:00Z"),
+          notes: "Reviewed and approved by NIS officer",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Admin Review",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-17T10:00:00Z"),
+          notes: "Final approval granted",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Pillar Number Assignment",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-17T11:30:00Z"),
+          notes:
+            "4 pillar numbers assigned: SC/CS 6670, SC/CS 6671, SC/CS 6672, SC/CS 6673",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-17T10:30:00Z"),
+          notes: "Blue Copy uploaded successfully",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-18T14:15:00Z"),
+          notes: "R of O document uploaded successfully",
+          surveyJobId: realJob1.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
+          status: "COMPLETED",
+          completedAt: new Date("2025-04-18T16:45:00Z"),
+          notes: "Job completed successfully - all requirements fulfilled.",
+          surveyJobId: realJob1.id,
+        },
+      }),
+    ]);
+    workflowSteps.push(...realJob1Workflow);
+
+    // Workflow for Real Job 2 (Mr. Oibapka - Completed)
+    const realJob2Workflow = await Promise.all([
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Submitted",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-01T09:00:00Z"),
+          notes: "Job submitted by KPJ Survey Consultants",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "NIS Review",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-01T16:30:00Z"),
+          notes: "Reviewed and approved by NIS officer",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Admin Review",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-02T10:00:00Z"),
+          notes: "Final approval granted",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Pillar Number Assignment",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-02T11:30:00Z"),
+          notes:
+            "5 pillar numbers assigned: SC/CV 0218, SC/CV 0219, SC/CV 0220, SC/CV 0221, SC/CV 0222",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Blue Copy Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-02T10:30:00Z"),
+          notes: "Blue Copy uploaded successfully",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "R of O Document Upload",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-03T14:15:00Z"),
+          notes: "R of O document uploaded successfully",
+          surveyJobId: realJob2.id,
+        },
+      }),
+      prisma.workflowStep.create({
+        data: {
+          stepName: "Completed",
+          status: "COMPLETED",
+          completedAt: new Date("2025-07-03T16:45:00Z"),
+          notes: "Job completed successfully - all requirements fulfilled.",
+          surveyJobId: realJob2.id,
+        },
+      }),
+    ]);
+    workflowSteps.push(...realJob2Workflow);
 
     // Workflow for Job 1 (Completed)
     const job1Workflow = await Promise.all([
@@ -748,6 +1077,91 @@ async function main() {
     console.log("📍 Creating pillar numbers...");
 
     const pillarNumbers = await Promise.all([
+      // Pillars for Real Job 1 (Mr. Chimzi - Completed)
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CS 6670",
+          coordinates: { easting: "253635.00", northing: "523028.00" },
+          issuedDate: new Date("2025-04-17T11:30:00Z"),
+          surveyJobId: realJob1.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CS 6671",
+          coordinates: { easting: "253644.14", northing: "523075.98" },
+          issuedDate: new Date("2025-04-17T11:30:00Z"),
+          surveyJobId: realJob1.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CS 6672",
+          coordinates: { easting: "253688.56", northing: "523055.31" },
+          issuedDate: new Date("2025-04-17T11:30:00Z"),
+          surveyJobId: realJob1.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CS 6673",
+          coordinates: { easting: "253673.73", northing: "523007.64" },
+          issuedDate: new Date("2025-04-17T11:30:00Z"),
+          surveyJobId: realJob1.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+
+      // Pillars for Real Job 2 (Mr. Oibapka - Completed)
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CV 0218",
+          coordinates: { easting: "289641.62", northing: "530212.85" },
+          issuedDate: new Date("2025-07-02T11:30:00Z"),
+          surveyJobId: realJob2.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CV 0219",
+          coordinates: { easting: "289651.28", northing: "530228.48" },
+          issuedDate: new Date("2025-07-02T11:30:00Z"),
+          surveyJobId: realJob2.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CV 0220",
+          coordinates: { easting: "289660.36", northing: "530228.20" },
+          issuedDate: new Date("2025-07-02T11:30:00Z"),
+          surveyJobId: realJob2.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CV 0221",
+          coordinates: { easting: "289674.32", northing: "530220.85" },
+          issuedDate: new Date("2025-07-02T11:30:00Z"),
+          surveyJobId: realJob2.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+      prisma.pillarNumber.create({
+        data: {
+          pillarNumber: "SC/CV 0222",
+          coordinates: { easting: "289664.44", northing: "530204.45" },
+          issuedDate: new Date("2025-07-02T11:30:00Z"),
+          surveyJobId: realJob2.id,
+          surveyorId: kpjSurveyor.surveyor.id,
+        },
+      }),
+
       // Pillars for Job 1 (Completed) - mapped to coordinates
       prisma.pillarNumber.create({
         data: {
@@ -755,7 +1169,7 @@ async function main() {
           coordinates: { easting: "288456.789", northing: "532123.456" },
           issuedDate: new Date("2024-01-22T16:45:00Z"),
           surveyJobId: job1.id,
-          surveyorId: verifiedSurveyors[0].surveyor.id,
+          surveyorId: verifiedSurveyors[1].surveyor.id,
         },
       }),
       prisma.pillarNumber.create({
@@ -764,7 +1178,7 @@ async function main() {
           coordinates: { easting: "288478.912", northing: "532145.678" },
           issuedDate: new Date("2024-01-22T16:45:00Z"),
           surveyJobId: job1.id,
-          surveyorId: verifiedSurveyors[0].surveyor.id,
+          surveyorId: verifiedSurveyors[1].surveyor.id,
         },
       }),
     ]);
@@ -785,7 +1199,9 @@ async function main() {
     );
 
     console.log("\n🔐 Test Accounts (email → password):");
-    console.log("   Surveyors:");
+    console.log("   KPJ Surveyor:");
+    console.log("   - kpj.surveys@email.com → surveyorkurotamuno");
+    console.log("   Other Surveyors:");
     console.log("   - adebayo.johnson@email.com → surveyoradebayo");
     console.log("   - chioma.okafor@email.com → surveyorchioma");
     console.log("   - ibrahim.musa@email.com → surveyoribrahim");
@@ -794,6 +1210,12 @@ async function main() {
     console.log("   - samuel.okoro@nis.gov.ng → nissamuel");
     console.log("   Admin:");
     console.log("   - patricia.wike@surveyorgeneral.rs.gov.ng → adminmrs.");
+
+    console.log("\n📌 Real KPJ Jobs Added:");
+    console.log("   - JOB-2025-KPJ-001: Mr. Chimzi (Ogoin-Piri, Abonnema)");
+    console.log(
+      "   - JOB-2025-KPJ-002: Mr. Oibapka Maharba Homi (Oka-Nsimu Ebara, Eleme)"
+    );
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     throw error;
